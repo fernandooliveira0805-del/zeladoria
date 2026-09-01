@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#007E7A">
+<title>Inspeção Zeladoria - Vale</title>
+<meta name="application-name" content="Inspeção Zeladoria">
+<style>
+  :root{
+    --vale-teal:#007E7A;
+    --vale-teal-d:#00605c;
+    --vale-yellow:#ECB800;
+    --vale-yellow-d:#c99b00;
+    --ok:#1e8e3e;
+    --nc:#d93025;
+    --na:#5f6368;
+    --bg:#f4f6f7;
+    --card:#ffffff;
+    --line:#e2e7e9;
+    --txt:#1f2a2e;
+    --muted:#6a777c;
+    --shadow:0 2px 10px rgba(0,0,0,.08);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--txt);font-size:15px;line-height:1.45;
+    padding-bottom:96px;
+  }
+  /* ---------- HEADER ---------- */
+  header{
+    background:linear-gradient(135deg,var(--vale-teal),var(--vale-teal-d));
+    color:#fff;padding:12px 16px;position:sticky;top:0;z-index:50;box-shadow:var(--shadow);
+  }
+  .hd-top{display:flex;align-items:center;gap:12px;}
+  .logo{
+    background:#fff;border-radius:10px;padding:7px 12px;flex-shrink:0;
+    box-shadow:0 2px 6px rgba(0,0,0,.2);display:flex;align-items:center;
+  }
+  .logo svg{display:block;height:26px;width:auto;}
+  .hd-txt h1{margin:0;font-size:16px;font-weight:700;}
+  .hd-txt p{margin:2px 0 0;font-size:12px;opacity:.9;}
+  /* ---------- PROGRESS BAR ---------- */
+  .progress-wrap{margin-top:10px;background:rgba(255,255,255,.25);border-radius:20px;height:10px;overflow:hidden;}
+  .progress-bar{height:100%;width:0;background:var(--vale-yellow);transition:width .3s;}
+  .progress-lbl{display:flex;justify-content:space-between;font-size:11px;margin-top:5px;opacity:.95;}
+  /* ---------- TABS ---------- */
+  .tabs{display:flex;background:#fff;box-shadow:var(--shadow);position:sticky;top:126px;z-index:40;}
+  .tab{
+    flex:1;text-align:center;padding:12px 4px;font-size:13px;font-weight:600;color:var(--muted);
+    border-bottom:3px solid transparent;cursor:pointer;user-select:none;
+  }
+  .tab.active{color:var(--vale-teal);border-bottom-color:var(--vale-teal);}
+  /* ---------- CONTAINER ---------- */
+  .container{max-width:820px;margin:0 auto;padding:14px;}
+  .view{display:none;}
+  .view.active{display:block;}
+  /* ---------- FORM / CARDS ---------- */
+  .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
+  .card h2{margin:0 0 12px;font-size:15px;color:var(--vale-teal-d);display:flex;align-items:center;gap:8px;}
+  label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px;}
+  input[type=text],input[type=date],input[type=number],input[type=email],select,textarea{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:15px;font-family:inherit;background:#fbfcfc;color:var(--txt);
+  }
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--vale-teal);background:#fff;}
+  textarea{resize:vertical;min-height:70px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  @media(max-width:520px){.grid2{grid-template-columns:1fr;}}
+  /* ---------- SECTION GROUP ---------- */
+  .sec-group{margin-bottom:16px;}
+  .sec-head{
+    background:var(--vale-teal);color:#fff;padding:10px 14px;border-radius:12px 12px 0 0;
+    font-weight:700;font-size:14px;display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+  }
+  .sec-head .badge{background:rgba(255,255,255,.25);border-radius:20px;padding:2px 10px;font-size:12px;font-weight:600;}
+  .sec-body{background:#fff;border-radius:0 0 12px 12px;box-shadow:var(--shadow);overflow:hidden;}
+  /* ---------- ITEM ---------- */
+  .item{padding:13px 14px;border-bottom:1px solid var(--line);}
+  .item:last-child{border-bottom:none;}
+  .item-title{font-size:14px;font-weight:600;margin-bottom:3px;}
+  .item-desc{font-size:12px;color:var(--muted);margin-bottom:10px;}
+  .item-num{color:var(--vale-teal);font-weight:800;margin-right:5px;}
+  .status-row{display:flex;gap:8px;margin-bottom:10px;}
+  .st-btn{
+    flex:1;padding:9px 4px;border:1.5px solid var(--line);border-radius:10px;background:#fff;
+    font-size:12.5px;font-weight:700;color:var(--muted);cursor:pointer;text-align:center;transition:.15s;
+  }
+  .st-btn.sel.ok{background:var(--ok);border-color:var(--ok);color:#fff;}
+  .st-btn.sel.nc{background:var(--nc);border-color:var(--nc);color:#fff;}
+  .st-btn.sel.na{background:var(--na);border-color:var(--na);color:#fff;}
+  .item-extra{display:none;margin-top:6px;}
+  .item-extra.show{display:block;}
+  .mini-lbl{font-size:11px;font-weight:600;color:var(--muted);margin:8px 0 4px;}
+  /* photos */
+  .photo-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:6px;}
+  .photo-thumb{position:relative;width:66px;height:66px;border-radius:8px;overflow:hidden;border:1px solid var(--line);}
+  .photo-thumb img{width:100%;height:100%;object-fit:cover;}
+  .photo-thumb .del{
+    position:absolute;top:2px;right:2px;background:rgba(217,48,37,.92);color:#fff;border:none;
+    width:18px;height:18px;border-radius:50%;font-size:12px;line-height:1;cursor:pointer;
+  }
+  .add-photo{
+    width:66px;height:66px;border:1.5px dashed var(--vale-teal);border-radius:8px;background:#eef7f6;
+    color:var(--vale-teal);font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;gap:2px;
+  }
+  .add-photo .ic{font-size:22px;line-height:1;}
+  .add-photo input{display:none;}
+  /* material request toggle */
+  .mat-toggle{
+    display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;font-weight:600;color:var(--vale-yellow-d);cursor:pointer;
+  }
+  .mat-toggle input{width:18px;height:18px;accent-color:var(--vale-yellow-d);}
+  .mat-box{display:none;margin-top:8px;background:#fffdf3;border:1px solid #f0e2a8;border-radius:10px;padding:10px;}
+  .mat-box.show{display:block;}
+  .mat-box .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;}
+  @media(max-width:520px){.mat-box .grid3{grid-template-columns:1fr;}}
+  /* ---------- BOTTOM BAR ---------- */
+  .bottom-bar{
+    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
+    display:flex;gap:8px;padding:10px 14px;z-index:60;box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  }
+  .btn{
+    flex:1;padding:13px 8px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+  .btn-primary{background:var(--vale-teal);color:#fff;}
+  .btn-yellow{background:var(--vale-yellow);color:var(--vale-teal-d);}
+  .btn-ghost{background:#eef2f3;color:var(--txt);}
+  .btn:active{transform:scale(.98);}
+  /* ---------- SUMMARY ---------- */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}
+  @media(max-width:520px){.kpi-grid{grid-template-columns:repeat(2,1fr);}}
+  .kpi{background:#fff;border-radius:12px;box-shadow:var(--shadow);padding:12px 8px;text-align:center;}
+  .kpi .n{font-size:24px;font-weight:800;}
+  .kpi .l{font-size:11px;color:var(--muted);font-weight:600;margin-top:2px;}
+  .kpi.k-ok .n{color:var(--ok);} .kpi.k-nc .n{color:var(--nc);}
+  .kpi.k-na .n{color:var(--na);} .kpi.k-tot .n{color:var(--vale-teal);}
+  .donut-wrap{display:flex;align-items:center;gap:16px;flex-wrap:wrap;justify-content:center;}
+  .donut{width:130px;height:130px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;}
+  .donut .inner{width:96px;height:96px;background:#fff;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+  .donut .pct{font-size:26px;font-weight:800;color:var(--vale-teal);}
+  .donut .cap{font-size:10px;color:var(--muted);}
+  .legend{font-size:13px;}
+  .legend div{display:flex;align-items:center;gap:8px;margin:4px 0;}
+  .dot{width:12px;height:12px;border-radius:3px;}
+  /* ---------- REPORT ---------- */
+  .rep-item{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px;}
+  .rep-item.nc{border-left:5px solid var(--nc);}
+  .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
+  .tag.ok{background:var(--ok);} .tag.nc{background:var(--nc);} .tag.na{background:var(--na);}
+  .rep-photos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .rep-photos img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
+  .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;}
+  .toast{
+    position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:#1f2a2e;color:#fff;
+    padding:11px 18px;border-radius:24px;font-size:13px;z-index:200;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow);
+  }
+  .toast.show{opacity:1;}
+  .hint{font-size:11.5px;color:var(--muted);margin-top:6px;}
+  .req-line{display:flex;justify-content:space-between;gap:8px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:13px;}
+  .req-line b{color:var(--vale-teal-d);}
+  /* ---------- SHARE PANEL ---------- */
+  .share-panel{margin-top:18px;border-top:2px dashed var(--line);padding-top:16px;}
+  .share-panel h3{font-size:14px;color:var(--vale-teal-d);margin:0 0 4px;}
+  .share-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px;}
+  @media(max-width:520px){.share-grid{grid-template-columns:1fr;}}
+  .share-btn{
+    padding:14px 10px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .sb-email{background:var(--vale-teal);color:#fff;}
+  .sb-pdf{background:var(--vale-yellow);color:var(--vale-teal-d);}
+  .sb-share{background:#25a366;color:#fff;}
+  .sb-save{background:#eef2f3;color:var(--txt);}
+  .share-btn:active{transform:scale(.98);}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hd-top">
+    <div class="logo">
+      <svg viewBox="0 0 150 46" xmlns="http://www.w3.org/2000/svg" aria-label="Vale">
+        <!-- símbolo Vale: V bold teal com ponta amarela -->
+        <path d="M7 9 L25 40 L43 9" fill="none" stroke="#008F83" stroke-width="8.5" stroke-linejoin="round" stroke-linecap="round"/>
+        <path d="M43 9 L35.5 22" fill="none" stroke="#ECB800" stroke-width="8.5" stroke-linecap="round"/>
+        <!-- wordmark VALE -->
+        <text x="56" y="33" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="1" fill="#4d4d4f">VALE</text>
+      </svg>
+    </div>
+    <div class="hd-txt">
+      <h1>Inspeção Zeladoria</h1>
+      <p id="hdSub">Vestiários • Sanitários • Louças e Acabamentos</p>
+    </div>
+  </div>
+  <div class="progress-wrap"><div class="progress-bar" id="progBar"></div></div>
+  <div class="progress-lbl"><span id="progTxt">0 de 0 itens</span><span id="progPct">0%</span></div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" data-view="dados">📋 Dados</div>
+  <div class="tab" data-view="inspecao">✅ Inspeção</div>
+  <div class="tab" data-view="resumo">📊 Resumo</div>
+  <div class="tab" data-view="relatorio">📄 Relatório</div>
+</div>
+
+<div class="container">
+
+  <!-- ========== DADOS ========== -->
+  <section class="view active" id="view-dados">
+    <div class="card">
+      <h2>🏢 Identificação da Inspeção</h2>
+      <div class="grid2">
+        <div><label>Local / Instalação</label><input type="text" id="f_local" placeholder="Ex.: Vestiário Pátio de Tubarão"></div>
+        <div><label>Setor / Área</label><input type="text" id="f_setor" placeholder="Ex.: EFVM / Facilities"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Inspetor(a)</label><input type="text" id="f_inspetor" placeholder="Nome do responsável"></div>
+        <div><label>Matrícula / Equipe</label><input type="text" id="f_matricula" placeholder="Equipe de Zeladoria"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Data da inspeção</label><input type="date" id="f_data"></div>
+        <div><label>Nº da inspeção / OM</label><input type="text" id="f_om" placeholder="Opcional"></div>
+      </div>
+      <label>E-mail(s) de destino do relatório</label>
+      <input type="email" id="f_email" placeholder="fiscal@vale.com; suprimentos@vale.com">
+      <label>Observações gerais</label>
+      <textarea id="f_obs" placeholder="Condições encontradas, contexto, pendências..."></textarea>
+      <p class="hint">💾 Os dados são salvos automaticamente no aparelho. Funciona sem internet após o primeiro carregamento.</p>
+    </div>
+  </section>
+
+  <!-- ========== INSPEÇÃO ========== -->
+  <section class="view" id="view-inspecao">
+    <div id="checklist"></div>
+
+    <!-- Itens adicionais / observações livres do zelador -->
+    <div class="card" id="freeCard" style="border:1.5px dashed var(--vale-teal);">
+      <h2>➕ Itens Adicionais / Observação Livre</h2>
+      <p class="hint" style="margin-top:0;">Registre aqui qualquer item que não esteja na lista acima. Você pode anexar foto e solicitar compra de material.</p>
+      <div id="freeList"></div>
+      <button class="btn btn-ghost" style="margin-top:10px;width:100%;" onclick="addFree()">➕ Adicionar observação livre</button>
+    </div>
+  </section>
+
+  <!-- ========== RESUMO ========== -->
+  <section class="view" id="view-resumo">
+    <div class="kpi-grid">
+      <div class="kpi k-tot"><div class="n" id="k_tot">0</div><div class="l">Itens</div></div>
+      <div class="kpi k-ok"><div class="n" id="k_ok">0</div><div class="l">Conforme</div></div>
+      <div class="kpi k-nc"><div class="n" id="k_nc">0</div><div class="l">Não Conforme</div></div>
+      <div class="kpi k-na"><div class="n" id="k_na">0</div><div class="l">N/A</div></div>
+    </div>
+    <div class="card">
+      <h2>📈 Índice de Conformidade</h2>
+      <div class="donut-wrap">
+        <div class="donut" id="donut"><div class="inner"><span class="pct" id="donutPct">0%</span><span class="cap">conformidade</span></div></div>
+        <div class="legend">
+          <div><span class="dot" style="background:var(--ok)"></span> Conforme: <b id="lg_ok">0</b></div>
+          <div><span class="dot" style="background:var(--nc)"></span> Não Conforme: <b id="lg_nc">0</b></div>
+          <div><span class="dot" style="background:var(--na)"></span> N/A: <b id="lg_na">0</b></div>
+          <div><span class="dot" style="background:#cfd8dc"></span> Pendentes: <b id="lg_pd">0</b></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🛒 Solicitações de Compra</h2>
+      <div id="matSummary"><p class="empty">Nenhum material solicitado até o momento.</p></div>
+    </div>
+  </section>
+
+  <!-- ========== RELATÓRIO ========== -->
+  <section class="view" id="view-relatorio">
+    <div class="card" id="reportArea">
+      <p class="empty">O relatório será montado com base na inspeção preenchida.<br>Toque em "Gerar" para visualizar.</p>
+    </div>
+  </section>
+
+</div>
+
+<div class="bottom-bar">
+  <button class="btn btn-ghost" id="btnSave">💾 Salvar</button>
+  <button class="btn btn-yellow" id="btnReport">📄 Gerar</button>
+  <button class="btn btn-primary" id="btnExport">⬇️ Exportar</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ESTRUTURA DA CHECKLIST — INSP VESTIÁRIOS
+   ============================================================ */
+const CHECKLIST = [
+  {
+    sec:"1", titulo:"1. Vestiário / Área Geral",
+    itens:[
+      {n:"1.1", t:"Piso e paredes", d:"Peças danificadas, buracos, pintura e limpeza"},
+      {n:"1.2", t:"Teto / Forro", d:"Peças danificadas, buracos, pintura, vazamentos e limpeza"},
+      {n:"1.3", t:"Portas (madeira, vidro, corta-fogo)", d:"Fixação, maçanetas, molas, acabamentos, limpeza"},
+      {n:"1.4", t:"Janelas e Vidros", d:"Fixação, vidro quebrado, limpeza"},
+      {n:"1.5", t:"Persianas", d:"Fixação, peças danificadas"},
+      {n:"1.6", t:"Insufilme", d:"Rasgado, descolando"},
+      {n:"1.7", t:"Mesas / Armários", d:"Danificadas, peças soltas"},
+      {n:"1.8", t:"Lixeiras", d:"Danificadas, limpeza, recolhimento"},
+      {n:"1.9", t:"Dispenser de álcool", d:"Danificadas, limpeza, reabastecimento"},
+      {n:"1.10", t:"Portas de Vidro", d:"Verificar película insulfilm; se não houver, abrir nota para orçamento / instalação"}
+    ]
+  },
+  {
+    sec:"3", titulo:"3. Bancadas / Sanitários",
+    itens:[
+      {n:"3.1", t:"Espelho", d:"Quebrado, solto, sujo"},
+      {n:"3.2", t:"Pedras e bancadas", d:"Quebrado, solto, sujo"},
+      {n:"3.3", t:"Janelas e Vidros", d:"Fixação, vidro quebrado, limpeza"},
+      {n:"3.4", t:"Piso e paredes", d:"Peças danificadas, buracos, pintura e limpeza"},
+      {n:"3.5", t:"Teto / Forro", d:"Peças danificadas, buracos, pintura, vazamentos e limpeza"},
+      {n:"3.6", t:"Portas", d:"Fixação, maçanetas, molas, acabamentos, limpeza"},
+      {n:"3.7", t:"Armários", d:"Quebrado, puxadores, cadeados, fixação"},
+      {n:"3.8", t:"Lixeiras", d:"Danificadas, limpeza, recolhimento"}
+    ]
+  },
+  {
+    sec:"4", titulo:"4. Louças, Hidráulica e Acabamentos",
+    itens:[
+      {n:"4.1", t:"Ducha sanitária", d:"Vazamentos e peças quebradas"},
+      {n:"4.2", t:"Papeleira / Saboneteira / Dispenser", d:"Fixação, danificado, reposição"},
+      {n:"4.3", t:"Pia e Sifão", d:"Fixação, vazamento/entupimento, danificada, limpeza"},
+      {n:"4.4", t:"Torneira e válvulas de descarga", d:"Vazamentos e peças quebradas"},
+      {n:"4.5", t:"Ralos", d:"Fixação, vazamento/entupimento, danificada, limpeza"},
+      {n:"4.6", t:"Vasos e/ou mictórios", d:"Fixação, vazamento/entupimento, danificada, limpeza"},
+      {n:"4.7", t:"Chuveiros elétricos / de PVC", d:"Fixação, vazamento/entupimento, danificada, limpeza"},
+      {n:"4.8", t:"Pintura interna e externa", d:"Verificar estado da pintura"},
+      {n:"4.9", t:"Ventiladores de parede", d:"Verificar funcionamento e fixação"},
+      {n:"5.0", t:"Limpeza geral do ambiente", d:"Verificar limpeza de todo o ambiente"}
+    ]
+  }
+];
+
+/* ============================================================
+   ESTADO
+   ============================================================ */
+const KEY = "insp_zeladoria_vale_v1";
+let STATE = { dados:{}, itens:{}, frees:[] };
+
+function itemState(n){
+  if(!STATE.itens[n]) STATE.itens[n] = { status:null, obs:"", fotos:[], mat:false, matDesc:"", matQtd:"", matUn:"un" };
+  return STATE.itens[n];
+}
+
+/* ============================================================
+   ITENS ADICIONAIS / OBSERVAÇÃO LIVRE
+   ============================================================ */
+function addFree(){
+  if(!STATE.frees) STATE.frees=[];
+  STATE.frees.push({ id:"L"+Date.now(), desc:"", local:"", fotos:[], mat:false, matDesc:"", matCod:"", matQtd:"", matUn:"un" });
+  renderFrees(); save();
+}
+function freeById(id){ return (STATE.frees||[]).find(f=>f.id===id); }
+function delFree(id){ STATE.frees=(STATE.frees||[]).filter(f=>f.id!==id); renderFrees(); save(); toast("Observação removida"); }
+function setFree(id,field,v){ const f=freeById(id); if(f){ f[field]=v; save(); } }
+function toggleFreeMat(id,v){ const f=freeById(id); if(f){ f.mat=v; document.getElementById("fmat-"+id).classList.toggle("show",v); save(); } }
+function renderFrees(){
+  const box=document.getElementById("freeList");
+  if(!box) return;
+  const list=STATE.frees||[];
+  if(list.length===0){ box.innerHTML=`<p class="empty" style="padding:14px;">Nenhuma observação livre adicionada.</p>`; return; }
+  box.innerHTML="";
+  list.forEach((f,idx)=>{
+    const div=document.createElement("div");
+    div.className="mat-box show";
+    div.style.cssText="background:#eef7f6;border-color:#bfe0dd;margin-bottom:12px;";
+    div.innerHTML=`
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <b style="color:var(--vale-teal-d);font-size:13px;">Observação #${idx+1}</b>
+        <button class="del" style="position:static;background:var(--nc);color:#fff;border:none;border-radius:6px;padding:3px 9px;font-size:12px;cursor:pointer;" onclick="delFree('${f.id}')">🗑 Remover</button>
+      </div>
+      <div class="mini-lbl">Local / referência (opcional)</div>
+      <input type="text" value="${escAttr(f.local)}" onchange="setFree('${f.id}','local',this.value)" placeholder="Ex.: Vestiário masculino - box 3">
+      <div class="mini-lbl">Descrição livre</div>
+      <textarea onchange="setFree('${f.id}','desc',this.value)" placeholder="Descreva o item / condição observada...">${escTa(f.desc)}</textarea>
+      <div class="mini-lbl">📷 Foto (opcional)</div>
+      <div class="photo-row" id="fphotos-${f.id}"></div>
+      <label class="mat-toggle"><input type="checkbox" ${f.mat?'checked':''} onchange="toggleFreeMat('${f.id}',this.checked)"> 🛒 Enviar para compra de material</label>
+      <div class="mat-box ${f.mat?'show':''}" id="fmat-${f.id}" style="background:#fffdf3;border-color:#f0e2a8;">
+        <div class="mini-lbl">Descrição do material a solicitar</div>
+        <textarea onchange="setFree('${f.id}','matDesc',this.value)" placeholder="Ex.: Saboneteira inox, luminária LED 18W...">${escTa(f.matDesc)}</textarea>
+        <div class="grid3" style="margin-top:8px;">
+          <div><div class="mini-lbl">Item / código</div><input type="text" value="${escAttr(f.matCod)}" onchange="setFree('${f.id}','matCod',this.value)" placeholder="Opcional"></div>
+          <div><div class="mini-lbl">Qtd.</div><input type="number" min="0" value="${escAttr(f.matQtd)}" onchange="setFree('${f.id}','matQtd',this.value)" placeholder="0"></div>
+          <div><div class="mini-lbl">Un.</div>
+            <select onchange="setFree('${f.id}','matUn',this.value)">
+              ${["un","pç","m","m²","kg","L","cx","par","rolo"].map(u=>`<option ${f.matUn===u?'selected':''}>${u}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+      </div>`;
+    box.appendChild(div);
+    renderFreePhotos(f.id);
+  });
+}
+function renderFreePhotos(id){
+  const f=freeById(id); const box=document.getElementById("fphotos-"+id);
+  if(!box||!f) return;
+  box.innerHTML="";
+  (f.fotos||[]).forEach((src,i)=>{
+    const t=document.createElement("div");t.className="photo-thumb";
+    t.innerHTML=`<img src="${src}" onclick="viewFreePhoto('${id}',${i})"><button class="del" onclick="delFreePhoto('${id}',${i})">×</button>`;
+    box.appendChild(t);
+  });
+  const add=document.createElement("label");add.className="add-photo";
+  add.innerHTML=`<span class="ic">📷</span><span>Foto</span><input type="file" accept="image/*" capture="environment" onchange="addFreePhoto('${id}',this)">`;
+  box.appendChild(add);
+}
+function addFreePhoto(id,input){
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const img=new Image();
+    img.onload=()=>{
+      const max=1000;let w=img.width,h=img.height;
+      if(w>h&&w>max){h=h*max/w;w=max;}else if(h>max){w=w*max/h;h=max;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      freeById(id).fotos.push(c.toDataURL("image/jpeg",0.7));
+      input.value="";renderFreePhotos(id);save();toast("Foto adicionada ✔");
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function delFreePhoto(id,i){ freeById(id).fotos.splice(i,1); renderFreePhotos(id); save(); }
+function viewFreePhoto(id,i){ const src=freeById(id).fotos[i]; const w=window.open("","_blank"); if(!w){ toast("Permita pop-ups para visualizar a foto"); return; } w.document.write(`<img src="${src}" style="max-width:100%;height:auto" alt="Registro fotográfico">`); w.document.close(); }
+
+/* ============================================================
+   RENDER CHECKLIST
+   ============================================================ */
+function renderChecklist(){
+  const wrap = document.getElementById("checklist");
+  wrap.innerHTML = "";
+  CHECKLIST.forEach(grp=>{
+    const g = document.createElement("div");
+    g.className = "sec-group";
+    g.innerHTML = `<div class="sec-head" onclick="toggleSec('${grp.sec}')">
+        <span>${grp.titulo}</span><span class="badge" id="badge-${grp.sec}">0/${grp.itens.length}</span>
+      </div><div class="sec-body" id="body-${grp.sec}"></div>`;
+    wrap.appendChild(g);
+    const body = g.querySelector(".sec-body");
+    grp.itens.forEach(it=>{
+      const st = itemState(it.n);
+      const div = document.createElement("div");
+      div.className = "item";
+      div.id = "item-"+it.n;
+      div.innerHTML = `
+        <div class="item-title"><span class="item-num">${it.n}</span>${it.t}</div>
+        <div class="item-desc">${it.d}</div>
+        <div class="status-row">
+          <button class="st-btn ok ${st.status==='ok'?'sel':''}" onclick="setStatus('${it.n}','ok')">✔ Conforme</button>
+          <button class="st-btn nc ${st.status==='nc'?'sel':''}" onclick="setStatus('${it.n}','nc')">✖ Não Conf.</button>
+          <button class="st-btn na ${st.status==='na'?'sel':''}" onclick="setStatus('${it.n}','na')">— N/A</button>
+        </div>
+        <div class="item-extra ${st.status==='nc'?'show':''}" id="extra-${it.n}">
+          <div class="mini-lbl">📷 Registro fotográfico</div>
+          <div class="photo-row" id="photos-${it.n}"></div>
+          <div class="mini-lbl">📝 Descrição da não conformidade</div>
+          <textarea onchange="setObs('${it.n}',this.value)" placeholder="Descreva o problema encontrado...">${st.obs||""}</textarea>
+          <label class="mat-toggle"><input type="checkbox" ${st.mat?'checked':''} onchange="toggleMat('${it.n}',this.checked)"> 🛒 Solicitar compra de material</label>
+          <div class="mat-box ${st.mat?'show':''}" id="mat-${it.n}">
+            <div class="mini-lbl">Descrição do material a solicitar</div>
+            <textarea onchange="setMat('${it.n}','matDesc',this.value)" placeholder="Ex.: Torneira de mesa 1/2', metálica cromada...">${st.matDesc||""}</textarea>
+            <div class="grid3" style="margin-top:8px;">
+              <div><div class="mini-lbl">Item / código</div><input type="text" value="${st.matCod||''}" onchange="setMat('${it.n}','matCod',this.value)" placeholder="Opcional"></div>
+              <div><div class="mini-lbl">Qtd.</div><input type="number" min="0" value="${st.matQtd||''}" onchange="setMat('${it.n}','matQtd',this.value)" placeholder="0"></div>
+              <div><div class="mini-lbl">Un.</div>
+                <select onchange="setMat('${it.n}','matUn',this.value)">
+                  ${["un","pç","m","m²","kg","L","cx","par","rolo"].map(u=>`<option ${st.matUn===u?'selected':''}>${u}</option>`).join("")}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>`;
+      body.appendChild(div);
+      renderPhotos(it.n);
+    });
+  });
+  updateBadges();
+}
+
+/* ---------- STATUS ---------- */
+function setStatus(n,s){
+  const st = itemState(n);
+  const wasNc = st.status==='nc';
+  st.status = (st.status===s)? null : s;
+  // atualizar botões
+  const item = document.getElementById("item-"+n);
+  item.querySelectorAll(".st-btn").forEach(b=>b.classList.remove("sel"));
+  if(st.status){
+    const idx = {ok:0,nc:1,na:2}[st.status];
+    item.querySelectorAll(".st-btn")[idx].classList.add("sel");
+  }
+  const extra = document.getElementById("extra-"+n);
+  if(st.status==='nc'){
+    extra.classList.add("show");
+    // >>> NOVO: ao marcar Não Conforme, abre a câmera automaticamente <<<
+    if(!wasNc && (!st.fotos || st.fotos.length===0)){
+      openCamera(n);
+    }
+  }
+  else { extra.classList.remove("show"); }
+  save(); updateBadges(); updateProgress();
+}
+function setObs(n,v){ itemState(n).obs=v; save(); }
+function toggleMat(n,v){ itemState(n).mat=v; document.getElementById("mat-"+n).classList.toggle("show",v); save(); }
+function setMat(n,f,v){ itemState(n)[f]=v; save(); }
+
+/* ---------- FOTOS ---------- */
+function renderPhotos(n){
+  const st = itemState(n);
+  const box = document.getElementById("photos-"+n);
+  if(!box) return;
+  box.innerHTML = "";
+  (st.fotos||[]).forEach((src,i)=>{
+    const t = document.createElement("div");
+    t.className="photo-thumb";
+    t.innerHTML = `<img src="${src}" onclick="viewPhoto('${n}',${i})"><button class="del" onclick="delPhoto('${n}',${i})">×</button>`;
+    box.appendChild(t);
+  });
+  const add = document.createElement("label");
+  add.className="add-photo";
+  add.innerHTML = `<span class="ic">📷</span><span>Foto</span><input type="file" id="cam-${n}" accept="image/*" capture="environment" onchange="addPhoto('${n}',this)">`;
+  box.appendChild(add);
+}
+// abre o seletor de câmera do item programaticamente
+function openCamera(n){
+  const input = document.getElementById("cam-"+n);
+  if(input){
+    try{ input.click(); toast("📷 Registre a não conformidade"); }
+    catch(e){ toast("Toque em Foto para abrir a câmera"); }
+  }
+}
+function addPhoto(n,input){
+  const file = input.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e=>{
+    // comprimir imagem
+    const img = new Image();
+    img.onload = ()=>{
+      const max=1000; let w=img.width,h=img.height;
+      if(w>h && w>max){h=h*max/w;w=max;} else if(h>max){w=w*max/h;h=max;}
+      const c=document.createElement("canvas");c.width=w;c.height=h;
+      c.getContext("2d").drawImage(img,0,0,w,h);
+      itemState(n).fotos.push(c.toDataURL("image/jpeg",0.7));
+      input.value=""; renderPhotos(n); save(); toast("Foto adicionada ✔");
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+function delPhoto(n,i){ itemState(n).fotos.splice(i,1); renderPhotos(n); save(); }
+function viewPhoto(n,i){
+  const src=itemState(n).fotos[i];
+  const w=window.open("","_blank");
+  if(!w){ toast("Permita pop-ups para visualizar a foto"); return; }
+  w.document.write(`<img src="${src}" style="max-width:100%;height:auto" alt="Registro fotográfico">`);
+  w.document.close();
+}
+
+/* ---------- COLLAPSE SECTION ---------- */
+function toggleSec(s){
+  const b=document.getElementById("body-"+s);
+  b.style.display = (b.style.display==="none")?"block":"none";
+}
+
+/* ============================================================
+   BADGES / PROGRESSO
+   ============================================================ */
+function updateBadges(){
+  CHECKLIST.forEach(grp=>{
+    let done=0;
+    grp.itens.forEach(it=>{ if(itemState(it.n).status) done++; });
+    const b=document.getElementById("badge-"+grp.sec);
+    if(b) b.textContent = `${done}/${grp.itens.length}`;
+  });
+}
+function totalItens(){ return CHECKLIST.reduce((a,g)=>a+g.itens.length,0); }
+function counts(){
+  let ok=0,nc=0,na=0,done=0;
+  CHECKLIST.forEach(g=>g.itens.forEach(it=>{
+    const s=itemState(it.n).status;
+    if(s){done++; if(s==='ok')ok++; else if(s==='nc')nc++; else na++;}
+  }));
+  return {ok,nc,na,done,tot:totalItens()};
+}
+function updateProgress(){
+  const c=counts();
+  const pct = c.tot? Math.round(c.done/c.tot*100):0;
+  document.getElementById("progBar").style.width=pct+"%";
+  document.getElementById("progTxt").textContent=`${c.done} de ${c.tot} itens`;
+  document.getElementById("progPct").textContent=pct+"%";
+}
+
+/* ============================================================
+   RESUMO
+   ============================================================ */
+function renderResumo(){
+  const c=counts();
+  document.getElementById("k_tot").textContent=c.tot;
+  document.getElementById("k_ok").textContent=c.ok;
+  document.getElementById("k_nc").textContent=c.nc;
+  document.getElementById("k_na").textContent=c.na;
+  const base=c.ok+c.nc; // conformidade sobre itens avaliados (exclui N/A)
+  const pct=base?Math.round(c.ok/base*100):0;
+  document.getElementById("donutPct").textContent=pct+"%";
+  const okDeg=base?(c.ok/base*360):0;
+  const color = pct>=90?"var(--ok)":pct>=70?"var(--vale-yellow)":"var(--nc)";
+  document.getElementById("donut").style.background=`conic-gradient(${color} 0deg ${okDeg}deg, #e9edee ${okDeg}deg 360deg)`;
+  document.getElementById("donutPct").style.color=color;
+  document.getElementById("lg_ok").textContent=c.ok;
+  document.getElementById("lg_nc").textContent=c.nc;
+  document.getElementById("lg_na").textContent=c.na;
+  document.getElementById("lg_pd").textContent=c.tot-c.done;
+  // materiais
+  const mats=collectMats();
+  const ms=document.getElementById("matSummary");
+  if(mats.length===0){ ms.innerHTML=`<p class="empty">Nenhum material solicitado até o momento.</p>`; }
+  else{
+    ms.innerHTML = mats.map(m=>`<div class="req-line"><span><b>${m.n}</b> — ${m.desc||"(sem descrição)"}</span><span>${m.qtd||"?"} ${m.un}</span></div>`).join("");
+  }
+}
+function collectMats(){
+  const out=[];
+  CHECKLIST.forEach(g=>g.itens.forEach(it=>{
+    const s=itemState(it.n);
+    if(s.mat){ out.push({n:it.n, titulo:it.t, desc:s.matDesc, cod:s.matCod, qtd:s.matQtd, un:s.matUn}); }
+  }));
+  // itens livres com solicitação de compra
+  (STATE.frees||[]).forEach((f,idx)=>{
+    if(f.mat){ out.push({n:"Livre #"+(idx+1), titulo:f.desc||f.local, desc:f.matDesc, cod:f.matCod, qtd:f.matQtd, un:f.matUn}); }
+  });
+  return out;
+}
+
+/* ============================================================
+   RELATÓRIO
+   ============================================================ */
+function renderReport(){
+  collectDados();
+  const d=STATE.dados;
+  const c=counts();
+  const base=c.ok+c.nc; const pct=base?Math.round(c.ok/base*100):0;
+  const ncItems=[]; CHECKLIST.forEach(g=>g.itens.forEach(it=>{ if(itemState(it.n).status==='nc') ncItems.push({...it, st:itemState(it.n)}); }));
+  const mats=collectMats();
+  const area=document.getElementById("reportArea");
+  let html = `
+    <h2 style="border-bottom:2px solid var(--vale-teal);padding-bottom:8px;">📄 Relatório de Inspeção — Zeladoria</h2>
+    <div style="font-size:13px;line-height:1.7;margin-bottom:12px;">
+      <b>Local:</b> ${esc(d.local)||"—"} &nbsp;•&nbsp; <b>Setor:</b> ${esc(d.setor)||"—"}<br>
+      <b>Inspetor:</b> ${esc(d.inspetor)||"—"} &nbsp;•&nbsp; <b>Equipe:</b> ${esc(d.matricula)||"—"}<br>
+      <b>Data:</b> ${fmtData(d.data)} &nbsp;•&nbsp; <b>Nº/OM:</b> ${esc(d.om)||"—"}
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi k-tot"><div class="n">${c.tot}</div><div class="l">Itens</div></div>
+      <div class="kpi k-ok"><div class="n">${c.ok}</div><div class="l">Conforme</div></div>
+      <div class="kpi k-nc"><div class="n">${c.nc}</div><div class="l">Não Conf.</div></div>
+      <div class="kpi k-na"><div class="n">${c.na}</div><div class="l">N/A</div></div>
+    </div>
+    <p style="font-size:14px;"><b>Índice de conformidade:</b> <span style="color:${pct>=90?'var(--ok)':pct>=70?'var(--vale-yellow-d)':'var(--nc)'};font-weight:800;">${pct}%</span> (sobre itens avaliados)</p>
+    ${d.obs?`<p style="font-size:13px;"><b>Observações gerais:</b> ${esc(d.obs)}</p>`:""}
+  `;
+
+  html += `<h2 style="margin-top:18px;">🚩 Não Conformidades (${ncItems.length})</h2>`;
+  if(ncItems.length===0){ html+=`<p class="empty">Nenhuma não conformidade registrada. ✅</p>`; }
+  else{
+    ncItems.forEach(it=>{
+      html+=`<div class="rep-item nc">
+        <div><span class="tag nc">NÃO CONFORME</span> <b>${it.n} — ${it.t}</b></div>
+        <div style="font-size:12px;color:var(--muted);margin-top:3px;">${it.d}</div>
+        ${it.st.obs?`<div style="font-size:13px;margin-top:6px;"><b>Constatação:</b> ${esc(it.st.obs)}</div>`:""}
+        ${it.st.mat?`<div style="font-size:13px;margin-top:4px;color:var(--vale-yellow-d);"><b>🛒 Solicita material:</b> ${esc(it.st.matDesc)||"(descrever)"} — ${esc(it.st.matQtd)||"?"} ${it.st.matUn}</div>`:""}
+        ${(it.st.fotos&&it.st.fotos.length)?`<div class="rep-photos">${it.st.fotos.map(f=>`<img src="${f}">`).join("")}</div>`:""}
+      </div>`;
+    });
+  }
+
+  // observações livres
+  const frees=(STATE.frees||[]).filter(f=>(f.desc&&f.desc.trim())||f.mat||(f.fotos&&f.fotos.length));
+  html += `<h2 style="margin-top:18px;">➕ Itens Adicionais / Observações Livres (${frees.length})</h2>`;
+  if(frees.length===0){ html+=`<p class="empty">Nenhuma observação livre registrada.</p>`; }
+  else{
+    frees.forEach((f,idx)=>{
+      html+=`<div class="rep-item" style="border-left:5px solid var(--vale-teal);">
+        <div><span class="tag" style="background:var(--vale-teal);">OBSERVAÇÃO #${idx+1}</span> ${f.local?`<b>${esc(f.local)}</b>`:""}</div>
+        ${f.desc?`<div style="font-size:13px;margin-top:6px;">${esc(f.desc)}</div>`:""}
+        ${f.mat?`<div style="font-size:13px;margin-top:4px;color:var(--vale-yellow-d);"><b>🛒 Solicita material:</b> ${esc(f.matDesc)||"(descrever)"} — ${esc(f.matQtd)||"?"} ${f.matUn}</div>`:""}
+        ${(f.fotos&&f.fotos.length)?`<div class="rep-photos">${f.fotos.map(x=>`<img src="${x}">`).join("")}</div>`:""}
+      </div>`;
+    });
+  }
+
+  html += `<h2 style="margin-top:18px;">🛒 Solicitação de Compra de Materiais (${mats.length})</h2>`;
+  if(mats.length===0){ html+=`<p class="empty">Nenhuma solicitação de material.</p>`; }
+  else{
+    html+=`<table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <tr style="background:var(--vale-teal);color:#fff;"><th style="padding:7px;text-align:left;">Item</th><th style="padding:7px;text-align:left;">Material</th><th style="padding:7px;">Cód.</th><th style="padding:7px;">Qtd</th><th style="padding:7px;">Un</th></tr>
+      ${mats.map((m,i)=>`<tr style="background:${i%2?'#f7fafa':'#fff'};border-bottom:1px solid var(--line);">
+        <td style="padding:7px;"><b>${m.n}</b></td><td style="padding:7px;">${esc(m.desc)||"—"}</td>
+        <td style="padding:7px;text-align:center;">${esc(m.cod)||"—"}</td><td style="padding:7px;text-align:center;">${esc(m.qtd)||"—"}</td>
+        <td style="padding:7px;text-align:center;">${m.un}</td></tr>`).join("")}
+    </table>`;
+  }
+
+  html += `
+    <div style="margin-top:30px;display:flex;justify-content:space-around;font-size:12px;color:var(--muted);text-align:center;">
+      <div style="border-top:1px solid #999;padding-top:6px;width:45%;">Inspetor(a)<br><b>${esc(d.inspetor)||""}</b></div>
+      <div style="border-top:1px solid #999;padding-top:6px;width:45%;">Responsável / Fiscal</div>
+    </div>
+    <p style="text-align:center;font-size:10px;color:var(--muted);margin-top:14px;">Gerado em ${new Date().toLocaleString('pt-BR')} • Ferramenta de Inspeção de Zeladoria</p>
+  `;
+
+  // >>> NOVO: painel de envio no final do relatório <<<
+  html += `
+    <div class="share-panel">
+      <h3>📤 Salvar e Enviar</h3>
+      <p class="hint">Envie o relatório por e-mail, gere o PDF ou compartilhe direto do celular.</p>
+      <div class="share-grid">
+        <button class="share-btn sb-email" onclick="sendEmail()">✉️ Enviar por E-mail</button>
+        <button class="share-btn sb-pdf" onclick="exportReport()">📄 Gerar / Salvar PDF</button>
+        <button class="share-btn sb-share" onclick="shareReport()">📲 Compartilhar</button>
+        <button class="share-btn sb-save" onclick="save();toast('Inspeção salva 💾')">💾 Salvar no aparelho</button>
+      </div>
+    </div>
+  `;
+
+  area.innerHTML = html;
+  toast("Relatório gerado ✔");
+}
+
+/* ============================================================
+   ENVIO POR E-MAIL (corpo resumido via mailto)
+   ============================================================ */
+function buildEmailText(){
+  collectDados();
+  const d=STATE.dados;
+  const c=counts();
+  const base=c.ok+c.nc; const pct=base?Math.round(c.ok/base*100):0;
+  const ncItems=[]; CHECKLIST.forEach(g=>g.itens.forEach(it=>{ if(itemState(it.n).status==='nc') ncItems.push({...it, st:itemState(it.n)}); }));
+  const mats=collectMats();
+  let L=[];
+  L.push("RELATÓRIO DE INSPEÇÃO — ZELADORIA (VALE)");
+  L.push("========================================");
+  L.push("Local: "+(d.local||"—"));
+  L.push("Setor: "+(d.setor||"—"));
+  L.push("Inspetor: "+(d.inspetor||"—")+"  |  Equipe: "+(d.matricula||"—"));
+  L.push("Data: "+fmtData(d.data)+"  |  Nº/OM: "+(d.om||"—"));
+  L.push("");
+  L.push("RESUMO:");
+  L.push("- Total de itens: "+c.tot);
+  L.push("- Conforme: "+c.ok+"  |  Não Conforme: "+c.nc+"  |  N/A: "+c.na);
+  L.push("- Índice de conformidade: "+pct+"%");
+  if(d.obs){ L.push(""); L.push("Observações gerais: "+d.obs); }
+  L.push("");
+  L.push("NÃO CONFORMIDADES ("+ncItems.length+"):");
+  if(ncItems.length===0){ L.push("- Nenhuma."); }
+  else ncItems.forEach(it=>{
+    L.push("• "+it.n+" - "+it.t);
+    if(it.st.obs) L.push("   Constatação: "+it.st.obs);
+    if(it.st.mat) L.push("   Material: "+(it.st.matDesc||"(descrever)")+" - "+(it.st.matQtd||"?")+" "+it.st.matUn);
+    if(it.st.fotos&&it.st.fotos.length) L.push("   Fotos: "+it.st.fotos.length+" anexa(s) no PDF");
+  });
+  const frees=(STATE.frees||[]).filter(f=>(f.desc&&f.desc.trim())||f.mat||(f.fotos&&f.fotos.length));
+  L.push("");
+  L.push("ITENS ADICIONAIS / OBSERVAÇÕES LIVRES ("+frees.length+"):");
+  if(frees.length===0){ L.push("- Nenhuma."); }
+  else frees.forEach((f,idx)=>{
+    L.push("• Obs #"+(idx+1)+(f.local?" ("+f.local+")":"")+": "+(f.desc||"—"));
+    if(f.mat) L.push("   Material: "+(f.matDesc||"(descrever)")+" - "+(f.matQtd||"?")+" "+f.matUn);
+    if(f.fotos&&f.fotos.length) L.push("   Fotos: "+f.fotos.length+" anexa(s) no PDF");
+  });
+  L.push("");
+  L.push("SOLICITAÇÃO DE MATERIAIS ("+mats.length+"):");
+  if(mats.length===0){ L.push("- Nenhuma."); }
+  else mats.forEach(m=>L.push("• "+m.n+" - "+(m.desc||"—")+" | "+(m.qtd||"?")+" "+m.un+(m.cod?" | Cód: "+m.cod:"")));
+  L.push("");
+  L.push("Obs.: As fotos e o layout completo estão no relatório em PDF (gerar pelo botão 'Gerar / Salvar PDF').");
+  L.push("Gerado em "+new Date().toLocaleString('pt-BR')+" — App de Inspeção de Zeladoria");
+  return L.join("\n");
+}
+function sendEmail(){
+  collectDados();
+  const d=STATE.dados||{};
+  const to = (document.getElementById("f_email").value||"").replace(/;/g,",");
+  const subject = "Relatório de Inspeção de Zeladoria — "+(d.local||"Local")+" — "+fmtData(d.data);
+  const body = buildEmailText();
+  const link = "mailto:"+encodeURIComponent(to)+"?subject="+encodeURIComponent(subject)+"&body="+encodeURIComponent(body);
+  // limite de tamanho do mailto: se muito grande, avisa
+  if(link.length>1900){ toast("Resumo enviado; gere o PDF para anexar as fotos 📄"); }
+  window.location.href = link;
+}
+
+/* ============================================================
+   COMPARTILHAR (Web Share API — WhatsApp, Teams, etc.)
+   ============================================================ */
+async function shareReport(){
+  collectDados();
+  const d=STATE.dados||{};
+  const text = buildEmailText();
+  const title = "Relatório Inspeção Zeladoria — "+(d.local||"");
+  if(navigator.share){
+    try{ await navigator.share({title, text}); }
+    catch(e){ /* usuário cancelou */ }
+  } else {
+    // fallback: copia para a área de transferência
+    try{
+      await navigator.clipboard.writeText(text);
+      toast("Relatório copiado! Cole no WhatsApp/Teams 📋");
+    }catch(e){ toast("Use 'Gerar PDF' para compartilhar 📄"); }
+  }
+}
+
+/* ============================================================
+   EXPORTAR (impressão / PDF)
+   ============================================================ */
+function exportReport(){
+  renderReportSilent();
+  const reportClone=document.getElementById("reportArea").cloneNode(true);
+  reportClone.querySelectorAll(".share-panel").forEach(el=>el.remove());
+  const rep=reportClone.innerHTML;
+  const w=window.open("","_blank");
+  if(!w){ toast("Permita pop-ups para gerar o PDF"); return; }
+  w.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Relatório de Inspeção — Zeladoria Vale</title>
+    <style>
+      body{font-family:Arial,sans-serif;color:#1f2a2e;max-width:820px;margin:0 auto;padding:24px;font-size:14px;}
+      h2{color:#00605c;} .tag{display:inline-block;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;}
+      .tag.nc{background:#d93025;} .rep-item{border:1px solid #e2e7e9;border-radius:8px;padding:10px;margin-bottom:10px;}
+      .rep-item.nc{border-left:5px solid #d93025;} .rep-photos img{width:120px;height:120px;object-fit:cover;border-radius:6px;margin:4px;}
+      .kpi-grid{display:flex;gap:10px;margin:12px 0;} .kpi{flex:1;border:1px solid #e2e7e9;border-radius:8px;padding:10px;text-align:center;}
+      .kpi .n{font-size:22px;font-weight:800;} .empty{color:#888;text-align:center;padding:12px;}
+      table{width:100%;border-collapse:collapse;} .header-band{background:#007E7A;color:#fff;padding:14px 18px;border-radius:8px;display:flex;align-items:center;gap:12px;margin-bottom:16px;}
+      .logo{background:#fff;border-radius:8px;padding:4px 8px;display:inline-flex;align-items:center;}
+      .share-panel{display:none;}
+      @media print{.noprint{display:none;}}
+    </style></head><body>
+    <div class="header-band"><span class="logo"><svg viewBox="0 0 150 46" width="110" height="34"><rect width="150" height="46" rx="6" fill="#fff"/><path d="M7 9 L25 40 L43 9" fill="none" stroke="#008F83" stroke-width="8.5" stroke-linejoin="round" stroke-linecap="round"/><path d="M43 9 L35.5 22" fill="none" stroke="#ECB800" stroke-width="8.5" stroke-linecap="round"/><text x="56" y="33" font-family="Arial" font-size="25" font-weight="700" letter-spacing="1" fill="#4d4d4f">VALE</text></svg></span><div><div style="font-size:18px;font-weight:700;">Inspeção Zeladoria</div><div style="font-size:12px;opacity:.9;">Relatório de Conformidade e Solicitação de Materiais</div></div></div>
+    ${rep}
+    <div class="noprint" style="text-align:center;margin-top:20px;"><button onclick="window.print()" style="background:#007E7A;color:#fff;border:none;padding:12px 26px;border-radius:8px;font-size:15px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button></div>
+    </body></html>`);
+  w.document.close();
+  toast("Abrindo PDF — escolha 'Salvar como PDF' 📄");
+}
+// gera o HTML do relatório sem exibir toast duplicado
+function renderReportSilent(){ renderReport(); }
+
+/* ============================================================
+   PERSISTÊNCIA
+   ============================================================ */
+function collectDados(){
+  STATE.dados = {
+    local:val("f_local"), setor:val("f_setor"), inspetor:val("f_inspetor"),
+    matricula:val("f_matricula"), data:val("f_data"), om:val("f_om"),
+    email:val("f_email"), obs:val("f_obs")
+  };
+}
+function save(){
+  collectDados();
+  try{
+    localStorage.setItem(KEY, JSON.stringify(STATE));
+    return true;
+  }catch(e){
+    console.warn(e);
+    toast("Memória do aparelho cheia. Exclua fotos antigas ou exporte o relatório.");
+    return false;
+  }
+}
+function load(){
+  try{
+    const raw=localStorage.getItem(KEY);
+    if(raw){ STATE=JSON.parse(raw); }
+  }catch(e){ STATE={dados:{},itens:{},frees:[]}; }
+  if(!STATE.itens) STATE.itens={};
+  if(!STATE.frees) STATE.frees=[];
+  const d=STATE.dados||{};
+  setVal("f_local",d.local); setVal("f_setor",d.setor); setVal("f_inspetor",d.inspetor);
+  setVal("f_matricula",d.matricula); setVal("f_om",d.om); setVal("f_email",d.email); setVal("f_obs",d.obs);
+  setVal("f_data", d.data || new Date().toISOString().slice(0,10));
+}
+
+/* ============================================================
+   UTIL
+   ============================================================ */
+function val(id){return document.getElementById(id).value;}
+function setVal(id,v){if(v!=null)document.getElementById(id).value=v;}
+function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function escAttr(s){return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function escTa(s){return (s||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function fmtData(s){if(!s)return"—";const[y,m,d]=s.split("-");return`${d}/${m}/${y}`;}
+let toastT;
+function toast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);
+}
+
+/* ============================================================
+   NAVEGAÇÃO
+   ============================================================ */
+document.querySelectorAll(".tab").forEach(tab=>{
+  tab.onclick=()=>{
+    document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+    document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+    tab.classList.add("active");
+    const v=tab.dataset.view;
+    document.getElementById("view-"+v).classList.add("active");
+    if(v==="resumo") renderResumo();
+    if(v==="relatorio") renderReport();
+    window.scrollTo(0,0);
+  };
+});
+document.getElementById("btnSave").onclick=()=>{save();toast("Inspeção salva no aparelho 💾");};
+document.getElementById("btnReport").onclick=()=>{
+  document.querySelector('.tab[data-view="relatorio"]').click();
+};
+document.getElementById("btnExport").onclick=exportReport;
+
+// autosave nos campos de dados
+["f_local","f_setor","f_inspetor","f_matricula","f_data","f_om","f_email","f_obs"].forEach(id=>{
+  const el=document.getElementById(id);
+  el.addEventListener("change",save);
+  el.addEventListener("input",debounce(save,500));
+});
+function debounce(fn,wait){
+  let t;
+  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),wait); };
+}
+window.addEventListener("beforeunload",save);
+
+/* ============================================================
+   INIT
+   ============================================================ */
+load();
+renderChecklist();
+renderFrees();
+updateProgress();
+</script>
+</body>
+</html>
