@@ -1015,16 +1015,65 @@ function setOnline(state,msg){
   const dot=b.querySelector(".cloud-dot"); if(dot) dot.className="cloud-dot "+(state==="on"?"on":state==="loading"?"loading":"off");
   m.innerHTML=(state==="loading"?'<span class="spin"></span> ':'')+msg;
 }
-/* ---------- CHAMADA À API (Apps Script) ---------- */
+/* ---------- CHAMADA À API (Apps Script) ----------
+   Estratégia robusta:
+   1) tenta POST (text/plain -> requisição simples, sem preflight CORS);
+   2) se der "Failed to fetch" (rede/CORS), refaz automaticamente via GET
+      com os dados na querystring (mesmo caminho do teste ?action=ping que
+      funcionou no navegador). O backend .gs já aceita e.parameter no doGet.
+   ------------------------------------------------------------------ */
+function parseCloudResponse_(txt){
+  let data;
+  try{ data=JSON.parse(txt); }
+  catch(e){
+    if(/<html|accounts\.google\.com|login|Sign in/i.test(txt)){
+      throw new Error("A implantação está pedindo login. Reimplante com "+
+        "'Quem pode acessar = Qualquer pessoa' (Anyone) e use a URL /exec.");
+    }
+    throw new Error("Resposta inválida do servidor (verifique a URL/implantação /exec).");
+  }
+  if(!data.ok) throw new Error(data.error||"Falha no servidor");
+  return data;
+}
+async function cloudGetFallback_(url, action, payload){
+  // monta ?action=...&rows=...&row=...&key=... (JSON codificado)
+  const p=new URLSearchParams();
+  p.set("action", action);
+  if(payload){
+    if(payload.rows!=null) p.set("rows", JSON.stringify(payload.rows));
+    if(payload.row!=null)  p.set("row",  JSON.stringify(payload.row));
+    if(payload.key!=null)  p.set("key",  String(payload.key));
+  }
+  const sep=url.indexOf("?")>=0?"&":"?";
+  const res=await fetch(url+sep+p.toString(), { method:"GET", redirect:"follow", cache:"no-store", credentials:"omit" });
+  return parseCloudResponse_(await res.text());
+}
 async function cloudRequest(action, payload){
   const cfg=cloudCfg();
   if(!cfg.url) throw new Error("URL do Web App não configurada");
   const body=Object.assign({action}, payload||{});
-  const res=await fetch(cfg.url,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body) });
-  const txt=await res.text();
-  let data; try{ data=JSON.parse(txt); }catch(e){ throw new Error("Resposta inválida (verifique a URL/implantação /exec)"); }
-  if(!data.ok) throw new Error(data.error||"Falha no servidor");
-  return data;
+  let res;
+  try{
+    res=await fetch(cfg.url,{
+      method:"POST",
+      // text/plain evita "preflight" CORS -> requisição simples aceita pelo Apps Script
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify(body),
+      redirect:"follow",       // Apps Script responde com redirect 302 (googleusercontent)
+      cache:"no-store",
+      credentials:"omit"
+    });
+  }catch(netErr){
+    // POST falhou (Failed to fetch). Tenta automaticamente via GET.
+    try{
+      return await cloudGetFallback_(cfg.url, action, payload);
+    }catch(getErr){
+      throw new Error("Sem conexão com a planilha (Failed to fetch). "+
+        "Verifique na implantação do Apps Script: 'Quem pode acessar = Qualquer pessoa' "+
+        "e gere uma NOVA versão. URL deve terminar em /exec.");
+    }
+  }
+  return parseCloudResponse_(await res.text());
 }
 /* ---------- NORMALIZAÇÃO ---------- */
 function normalizeCloud(cp){
