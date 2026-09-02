@@ -245,6 +245,7 @@
     <div class="hd-txt">
       <h1>Inspeção Zeladoria</h1>
       <p id="hdSub">Vestiários • Sanitários • Louças e Acabamentos</p>
+      <p style="margin:2px 0 0;font-size:9px;opacity:.6;">v29 • build 2026-09-02</p>
     </div>
   </div>
   <div class="progress-wrap"><div class="progress-bar" id="progBar"></div></div>
@@ -978,9 +979,11 @@ function load(){
    ============================================================ */
 function val(id){const el=document.getElementById(id); return el?el.value:"";}
 function setVal(id,v){const el=document.getElementById(id); if(el&&v!=null)el.value=v;}
-function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-function escAttr(s){return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
-function escTa(s){return (s||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+/* Coerção segura p/ string: o Google Sheets pode devolver números
+   (qtd, datas, etc.) e number.replace() não existe -> convertemos sempre. */
+function esc(s){return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function escAttr(s){return (s==null?"":String(s)).replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function escTa(s){return (s==null?"":String(s)).replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function fmtData(s){if(!s)return"—";const[y,m,d]=s.split("-");return`${d}/${m}/${y}`;}
 let toastT;
 function toast(msg){
@@ -1043,6 +1046,8 @@ async function cloudGetFallback_(url, action, payload){
   if(payload){
     if(payload.rows!=null) p.set("rows", JSON.stringify(payload.rows));
     if(payload.row!=null)  p.set("row",  JSON.stringify(payload.row));
+    if(payload.inspecao!=null) p.set("inspecao", JSON.stringify(payload.inspecao));
+    if(payload.inspId!=null) p.set("inspId", String(payload.inspId));
     if(payload.key!=null)  p.set("key",  String(payload.key));
   }
   const sep=url.indexOf("?")>=0?"&":"?";
@@ -1080,12 +1085,14 @@ async function cloudRequest(action, payload){
 function normalizeCloud(cp){
   let hist=cp.historico;
   if(typeof hist==="string"){ try{ hist=JSON.parse(hist); }catch(e){ hist=[]; } }
+  // str(): garante string para campos textuais (o Sheets pode devolver números)
+  const str=v=>(v==null?"":String(v));
   return {
-    key:cp.key, id:cp.id, inspId:cp.inspId, createdAt:+cp.createdAt||Date.now(),
-    item:cp.item||"", titulo:cp.titulo||"", desc:cp.desc||"", cod:cp.cod||"",
-    qtd:cp.qtd||"", un:cp.un||"un", local:cp.local||"", setor:cp.setor||"", om:cp.om||"",
-    zelador:cp.zelador||"", contato:cp.contato||"", status:cp.status||"Pendente",
-    localRetirada:cp.localRetirada||"", notifiedAt:cp.notifiedAt?(+cp.notifiedAt):null,
+    key:str(cp.key), id:str(cp.id), inspId:str(cp.inspId), createdAt:+cp.createdAt||Date.now(),
+    item:str(cp.item), titulo:str(cp.titulo), desc:str(cp.desc), cod:str(cp.cod),
+    qtd:str(cp.qtd), un:str(cp.un)||"un", local:str(cp.local), setor:str(cp.setor), om:str(cp.om),
+    zelador:str(cp.zelador), contato:str(cp.contato), status:str(cp.status)||"Pendente",
+    localRetirada:str(cp.localRetirada), notifiedAt:cp.notifiedAt?(+cp.notifiedAt):null,
     updatedAt:+cp.updatedAt||Date.now(), historico:hist||[]
   };
 }
@@ -1166,7 +1173,7 @@ async function clearRetirados(){
   await refreshCompras();
 }
 /* ---------- NOTIFICAÇÃO ---------- */
-function normPhone(s){ let d=(s||"").replace(/\D/g,""); if(!d) return ""; if(d.length<=11) d="55"+d; return d; }
+function normPhone(s){ let d=(s==null?"":String(s)).replace(/\D/g,""); if(!d) return ""; if(d.length<=11) d="55"+d; return d; }
 function buildNotifMsg(po){
   const ret=po.localRetirada||po.local||"(a informar)";
   if(po.status==="Disponível para retirada"){
@@ -1362,6 +1369,75 @@ async function sendInspectionToCloud(showMsg){
     return {ok:false, sent:0, verified:false, reason:"erro", error:e.message};
   }
 }
+/* ============================================================
+   >>> INSPEÇÃO 100% ONLINE (Resumo + Relatório no Google Sheets) <<<
+   Grava o registro COMPLETO da inspeção (identificação, contagens,
+   índice de conformidade, não conformidades e observações livres)
+   na aba "Inspecoes" da planilha. Assim, Resumo e Relatório deixam
+   de depender do armazenamento local — ficam 100% na nuvem.
+   Obs.: fotos (base64) NÃO vão para a célula (limite do Sheets);
+   o relatório em PDF continua carregando as imagens.
+   ============================================================ */
+function buildInspectionRecord(){
+  collectDados();
+  const d=STATE.dados||{};
+  const c=counts();
+  const base=c.ok+c.nc; const pct=base?Math.round(c.ok/base*100):0;
+  // Não conformidades (sem base64 das fotos — só a contagem)
+  const ncs=[]; CHECKLIST.forEach(g=>g.itens.forEach(it=>{
+    const s=itemState(it.n);
+    if(s.status==='nc'){
+      ncs.push({ n:it.n, t:it.t, obs:s.obs||"", mat:!!s.mat,
+        matDesc:s.matDesc||"", matQtd:s.matQtd||"", matUn:s.matUn||"un",
+        fotos:(s.fotos||[]).length });
+    }
+  }));
+  // Observações livres (sem base64 — só a contagem)
+  const frees=(STATE.frees||[]).filter(f=>(f.desc&&f.desc.trim())||f.mat||(f.fotos&&f.fotos.length))
+    .map((f,idx)=>({ n:idx+1, local:f.local||"", desc:f.desc||"", mat:!!f.mat,
+      matDesc:f.matDesc||"", matQtd:f.matQtd||"", matUn:f.matUn||"un",
+      fotos:(f.fotos||[]).length }));
+  const mats=collectMats();
+  return {
+    inspId: currentInspId(),
+    createdAt: Date.now(),
+    local:d.local||"", setor:d.setor||"", inspetor:d.inspetor||"",
+    matricula:d.matricula||"", data:d.data||"", om:d.om||"",
+    zelador:d.zelador||"", contato:d.contato||"", email:d.email||"", obs:d.obs||"",
+    total:c.tot, conforme:c.ok, naoConforme:c.nc, na:c.na, pendentes:c.tot-c.done,
+    conformidade:pct,
+    ncJson: JSON.stringify(ncs),
+    freesJson: JSON.stringify(frees),
+    materiaisJson: JSON.stringify(mats),
+    totalFotos: (function(){let t=0;CHECKLIST.forEach(g=>g.itens.forEach(it=>t+=(itemState(it.n).fotos||[]).length));(STATE.frees||[]).forEach(f=>t+=(f.fotos||[]).length);return t;})()
+  };
+}
+async function saveInspectionOnline(showMsg){
+  const cfg=cloudCfg();
+  if(!cfg.url){ if(showMsg) toast("Sem conexão configurada para salvar a inspeção."); return {ok:false, verified:false, reason:"sem_url"}; }
+  const rec=buildInspectionRecord();
+  setOnline("loading","Salvando inspeção no Google Sheets...");
+  try{
+    // 1) grava o registro da inspeção
+    await cloudRequest("saveInspection",{inspecao:rec});
+    // 2) CONFIRMAÇÃO (read-back): relê as inspeções e confere o inspId
+    const d=await cloudRequest("listInspections",{});
+    const linhas=(d.rows||[]);
+    const ok=linhas.some(r=>String(r.inspId)===String(rec.inspId));
+    if(ok){
+      setOnline("on","Inspeção salva ✔ (Resumo/Relatório no Google Sheets)");
+      if(showMsg) toast("✔ Inspeção gravada no Google Sheets");
+      return {ok:true, verified:true};
+    }
+    setOnline("off","Inspeção não confirmada na planilha");
+    if(showMsg) toast("⚠ Inspeção não confirmada. Tente novamente.");
+    return {ok:false, verified:false, reason:"nao_confirmada"};
+  }catch(e){
+    setOnline("off","Erro ao salvar inspeção: "+e.message);
+    if(showMsg) toast("Erro ao salvar inspeção: "+e.message);
+    return {ok:false, verified:false, reason:"erro", error:e.message};
+  }
+}
 /* >>> FIM MÓDULO COMPRAS ONLINE <<< */
 /* ============================================================
    >>> FINALIZAR INSPEÇÃO <<<
@@ -1390,54 +1466,59 @@ async function finalizarInspecao(){
      - Se NÃO há materiais, não há o que enviar: finaliza e limpa.
      --------------------------------------------------------------- */
 
-  // Caso 1: há materiais, mas a nuvem não está configurada -> NÃO limpa.
-  if(mats.length>0 && !cfg.url){
+  // Caso 1: sem nuvem configurada -> NÃO limpa (evita ficar só no local).
+  if(!cfg.url){
     document.querySelector('.tab[data-view="relatorio"]').click();
-    alert("⚠ Esta inspeção possui pedidos de material, mas a conexão com o Google Sheets não está configurada.\n\n"+
+    alert("⚠ A conexão com o Google Sheets não está configurada.\n\n"+
+          "Para ficar 100% online, a inspeção precisa ser gravada na planilha. "+
           "Os dados foram MANTIDOS no aparelho para não se perderem. "+
-          "Configure a planilha (ou verifique a internet) e finalize novamente para enviar.");
-    toast("Pedidos mantidos no aparelho (sem nuvem)");
+          "Verifique a internet/implantação e finalize novamente.");
+    toast("Sem nuvem — dados mantidos no aparelho");
     return;
   }
 
-  // Caso 2: há materiais e há nuvem -> envia e EXIGE confirmação de gravação.
-  if(mats.length>0 && cfg.url){
-    toast("Enviando e confirmando no Google Sheets...");
-    const r=await sendInspectionToCloud(true);
-    document.querySelector('.tab[data-view="relatorio"]').click();
+  // Com nuvem: grava (1) o REGISTRO DA INSPEÇÃO (Resumo/Relatório) e
+  // (2) os PEDIDOS de material. Só limpa se AMBOS forem confirmados.
+  toast("Enviando e confirmando no Google Sheets...");
 
-    if(!(r && r.ok && r.verified)){
-      // Não confirmado -> NÃO limpa. Mantém tudo no aparelho.
-      alert("⚠ A gravação no Google Sheets NÃO foi confirmada"+
-            (r && r.error ? ("\n\nDetalhe: "+r.error) : "")+
-            "\n\nOs dados desta inspeção foram MANTIDOS no aparelho para reenvio. "+
-            "Verifique a conexão/implantação e toque em Finalizar novamente.");
-      toast("Não confirmado — dados mantidos para reenvio");
+  // (1) Inspeção completa -> aba "Inspecoes"
+  const ri=await saveInspectionOnline(true);
+  if(!(ri && ri.ok && ri.verified)){
+    document.querySelector('.tab[data-view="relatorio"]').click();
+    alert("⚠ A gravação da INSPEÇÃO no Google Sheets NÃO foi confirmada"+
+          (ri && ri.error ? ("\n\nDetalhe: "+ri.error) : "")+
+          "\n\nOs dados foram MANTIDOS no aparelho para reenvio. "+
+          "Verifique a conexão/implantação e toque em Finalizar novamente.");
+    toast("Inspeção não confirmada — dados mantidos");
+    return;
+  }
+
+  // (2) Pedidos de material -> aba "Pedidos" (se houver)
+  let nPedidos=0;
+  if(mats.length>0){
+    const rp=await sendInspectionToCloud(true);
+    if(!(rp && rp.ok && rp.verified)){
+      document.querySelector('.tab[data-view="relatorio"]').click();
+      alert("⚠ A inspeção foi gravada, mas os PEDIDOS de material NÃO foram confirmados"+
+            (rp && rp.error ? ("\n\nDetalhe: "+rp.error) : "")+
+            "\n\nOs dados foram MANTIDOS no aparelho para reenvio. Finalize novamente.");
+      toast("Pedidos não confirmados — dados mantidos");
       return;
     }
-
-    // Confirmado no Sheets -> pergunta antes de limpar
-    const nPedidos=r.sent||mats.length;
-    const limpar=confirm("✅ "+nPedidos+" pedido(s) CONFIRMADO(S) no Google Sheets.\n\n"+
-                         "Deseja limpar os campos e iniciar uma NOVA inspeção?\n"+
-                         "(Os pedidos já gravados na planilha não serão afetados.)");
-    if(limpar){
-      novaInspecao(false);
-      toast("Enviado ✔ e pronto para nova inspeção 🧹");
-    } else {
-      toast("Enviado ✔ — campos mantidos (limpe quando quiser)");
-    }
-    return;
+    nPedidos=rp.sent||mats.length;
   }
 
-  // Caso 3: sem materiais -> finaliza e limpa (com confirmação).
+  // Tudo confirmado no Google Sheets -> mostra relatório e oferece limpar
   document.querySelector('.tab[data-view="relatorio"]').click();
-  const limpar=confirm("Inspeção finalizada (sem pedidos de material).\n\nLimpar os campos e iniciar uma NOVA inspeção?");
+  const resumo="✅ Inspeção gravada no Google Sheets"+
+               (nPedidos>0 ? (" com "+nPedidos+" pedido(s) de material.") : ".");
+  const limpar=confirm(resumo+"\n\nDeseja limpar os campos e iniciar uma NOVA inspeção?\n"+
+                       "(Os registros já gravados na planilha não serão afetados.)");
   if(limpar){
     novaInspecao(false);
-    toast("Pronto para uma nova inspeção 🧹");
+    toast("Salvo online ✔ e pronto para nova inspeção 🧹");
   } else {
-    toast("Inspeção finalizada ✔");
+    toast("Salvo online ✔ — campos mantidos (limpe quando quiser)");
   }
 }
 /* ============================================================
@@ -1494,6 +1575,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
 /* ============================================================
    INIT
    ============================================================ */
+console.log("%c[Inspeção Zeladoria] versão v29 carregada (inspeção 100% online)","color:#007E7A;font-weight:bold;");
 load();
 renderChecklist();
 renderFrees();
