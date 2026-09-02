@@ -175,7 +175,7 @@
   .sb-share{background:#25a366;color:#fff;}
   .sb-save{background:#eef2f3;color:var(--txt);}
   .share-btn:active{transform:scale(.98);}
-  /* ========== COMPRAS / COMPRADOR ========== */
+  /* ========== COMPRAS / COMPRADOR (ONLINE) ========== */
   .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
   .filters select,.filters input{flex:1;min-width:130px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfc;font-size:14px;}
   .subtabs{display:flex;gap:8px;margin-bottom:14px;}
@@ -207,6 +207,7 @@
   .mini-btn:disabled{opacity:.45;cursor:not-allowed;}
   .mb-wa{background:#25a366;color:#fff;} .mb-sms{background:#1a73e8;color:#fff;}
   .mb-del{background:#fdecea;color:#c5221f;} .mb-copy{background:#eef2f3;color:var(--txt);}
+  .mb-pull{background:#6b4fbb;color:#fff;}
   .notif-badge{font-size:11px;color:var(--ok);font-weight:700;margin-top:6px;}
   .ready-flag{background:#e6f4ea;border:1px solid #b7e0c2;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12.5px;color:#1e6b31;font-weight:600;}
   .hist-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
@@ -217,9 +218,15 @@
   /* ---- CLOUD / GOOGLE SHEETS ---- */
   .cloud-card{border:1.5px solid #6b4fbb33;background:linear-gradient(180deg,#faf8ff,#fff);}
   .cloud-card h2{color:#5b3fb0;}
-  .cloud-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa0a6;margin-right:6px;vertical-align:middle;}
-  .cloud-dot.on{background:var(--ok);} .cloud-dot.off{background:var(--nc);}
-  .mb-pull{background:#6b4fbb;color:#fff;}
+  .online-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:12px;}
+  .online-badge.on{background:#e6f4ea;color:#1e6b31;border:1px solid #b7e0c2;}
+  .online-badge.off{background:#fdecea;color:#b3261e;border:1px solid #f3b7b1;}
+  .online-badge.loading{background:#fff8e1;color:#7a5c00;border:1px solid #f0e2a8;}
+  .cloud-dot{width:10px;height:10px;border-radius:50%;background:#9aa0a6;flex-shrink:0;}
+  .cloud-dot.on{background:#1e8e3e;} .cloud-dot.off{background:#d93025;} .cloud-dot.loading{background:#f0a500;}
+  .spin{width:14px;height:14px;border:2px solid #ffffff70;border-top-color:#7a5c00;border-radius:50%;display:inline-block;animation:spin 0.8s linear infinite;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .sec-warn{background:#eef7f6;border:1px solid #bfe0dd;border-radius:8px;padding:8px 10px;font-size:11.5px;color:#0b5c57;margin-top:10px;line-height:1.5;}
 
 </style>
 </head>
@@ -319,7 +326,7 @@
     <div class="card">
       <h2>🛒 Solicitações de Compra</h2>
       <div id="matSummary"><p class="empty">Nenhum material solicitado até o momento.</p></div>
-      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="syncCurrentInspectionToPO(true)">📤 Enviar pedidos ao Comprador</button>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="sendInspectionToCloud(true)">📤 Enviar pedidos ao Comprador (online)</button>
     </div>
   </section>
 
@@ -330,7 +337,7 @@
     </div>
   </section>
 
-  <!-- ========== COMPRAS (COMPRADOR) ========== -->
+  <!-- ========== COMPRAS (COMPRADOR) — 100% ONLINE ========== -->
   <section class="view" id="view-compras">
     <div class="subtabs">
       <div class="subtab active" data-sub="pedidos" onclick="switchSub('pedidos')">📦 Pedidos</div>
@@ -340,26 +347,24 @@
     <!-- ---- PEDIDOS ---- -->
     <div class="subview active" id="sub-pedidos">
 
+      <!-- STATUS ONLINE -->
+      <div class="online-badge off" id="onlineBadge"><span class="cloud-dot off"></span><span id="onlineMsg">Desconectado — configure a URL abaixo</span></div>
+
       <!-- CLOUD CONFIG -->
       <div class="card cloud-card">
-        <h2>☁️ Fonte de Dados — Google Sheets</h2>
-        <p class="hint" style="margin-top:0;">Conecte a um Web App do Google Apps Script para compartilhar os pedidos entre o comprador e os zeladores, em qualquer aparelho.</p>
+        <h2>☁️ Fonte de Dados — Google Sheets (Online)</h2>
+        <p class="hint" style="margin-top:0;">Nesta aba os pedidos ficam <b>100% na planilha</b> — todos veem os mesmos dados, sem cópia local por pessoa.</p>
         <label>URL do Web App (Apps Script)</label>
         <input type="url" id="cloud_url" placeholder="https://script.google.com/macros/s/xxxxx/exec">
-        <label>Token de acesso</label>
-        <input type="text" id="cloud_token" placeholder="Mesmo TOKEN definido no Apps Script">
-        <label class="mat-toggle" style="color:#5b3fb0"><input type="checkbox" id="cloud_auto"> ☁️ Sincronizar automaticamente ao abrir/enviar</label>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
           <button class="mini-btn mb-copy" onclick="saveCloudCfg()">💾 Salvar</button>
           <button class="mini-btn mb-sms" onclick="testCloud()">🔌 Testar</button>
-          <button class="mini-btn mb-wa" onclick="pushToCloud(false)">⬆️ Enviar</button>
-          <button class="mini-btn mb-pull" onclick="pullFromCloud(false)">⬇️ Baixar</button>
+          <button class="mini-btn mb-pull" onclick="refreshCompras()">🔄 Atualizar</button>
+          <button class="mini-btn mb-wa" onclick="copyShareLink()">🔗 Gerar link p/ equipe</button>
         </div>
-        <div id="cloudStatus" class="hint" style="margin-top:8px;font-weight:600;"><span class="cloud-dot off"></span>Desconectado</div>
-      </div>
-
-      <div class="info-note">
-        💡 <b>Painel do Comprador.</b> Aqui aparecem todos os materiais solicitados nas inspeções. Atualize o <b>status</b>, informe o <b>local de retirada</b> e, quando o material estiver disponível, toque em <b>WhatsApp</b> ou <b>SMS</b> para avisar o zelador solicitante. Com a nuvem ativa, os pedidos são compartilhados entre todos os aparelhos.
+        <div class="sec-warn">
+          🔗 <b>Compartilhamento sem configuração:</b> toque em <b>Gerar link p/ equipe</b> para criar um link já com a URL embutida. Quem abrir esse link entra <b>direto online</b>, sem precisar preencher nada.
+        </div>
       </div>
 
       <div class="kpi-grid">
@@ -370,7 +375,7 @@
       </div>
 
       <div class="filters">
-        <select id="cf_status" onchange="renderCompras()">
+        <select id="cf_status" onchange="renderComprasFromCache()">
           <option value="Todos">Todos os status</option>
           <option>Pendente</option>
           <option>Em cotação</option>
@@ -378,36 +383,37 @@
           <option>Disponível para retirada</option>
           <option>Retirado</option>
         </select>
-        <input type="text" id="cf_local" placeholder="Filtrar por local..." oninput="renderCompras()">
-        <input type="text" id="cf_text" placeholder="Buscar material / zelador..." oninput="renderCompras()">
+        <input type="text" id="cf_local" placeholder="Filtrar por local..." oninput="renderComprasFromCache()">
+        <input type="text" id="cf_text" placeholder="Buscar material / zelador..." oninput="renderComprasFromCache()">
       </div>
 
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
-        <button class="btn btn-ghost" style="flex:1;" onclick="syncCurrentInspectionToPO(true)">🔄 Sincronizar inspeção atual</button>
+        <button class="btn btn-ghost" style="flex:1;" onclick="refreshCompras()">🔄 Atualizar da nuvem</button>
         <button class="btn btn-yellow" style="flex:1;" onclick="exportComprasCSV()">⬇️ Exportar CSV</button>
       </div>
 
-      <div id="comprasList"></div>
+      <div id="comprasList"><p class="empty">Configure a URL e toque em <b>Atualizar</b> para carregar os pedidos.</p></div>
 
       <button class="btn btn-ghost" style="width:100%;margin-top:6px;" onclick="clearRetirados()">🧹 Limpar pedidos já retirados</button>
     </div>
 
     <!-- ---- HISTÓRICO ---- -->
     <div class="subview" id="sub-historico">
-      <div class="info-note">📚 Histórico consolidado de compras. Agrupado por <b>material</b> e por <b>local</b>, considerando todos os pedidos registrados.</div>
+      <div class="info-note">📚 Histórico consolidado (direto da planilha). Agrupado por <b>material</b> e por <b>local</b>.</div>
       <div class="filters">
-        <select id="hf_status" onchange="renderHistorico()">
+        <select id="hf_status" onchange="renderHistoricoFromCache()">
           <option value="Efetivados">Somente efetivados (Comprado/Disponível/Retirado)</option>
           <option value="Todos">Todos os pedidos</option>
         </select>
+        <button class="btn btn-ghost" onclick="refreshHistorico()">🔄 Atualizar</button>
       </div>
       <div class="card">
         <h2>🧱 Por Material</h2>
-        <div id="histMaterial"></div>
+        <div id="histMaterial"><p class="empty">Toque em Atualizar.</p></div>
       </div>
       <div class="card">
         <h2>📍 Por Local</h2>
-        <div id="histLocal"></div>
+        <div id="histLocal"><p class="empty">Toque em Atualizar.</p></div>
       </div>
     </div>
   </section>
@@ -1038,104 +1044,174 @@ function toast(msg){
 }
 
 /* ============================================================
-   >>> MÓDULO COMPRAS / COMPRADOR / NOTIFICAÇÕES / NUVEM <<<
+   >>> MÓDULO COMPRAS — 100% ONLINE (Google Sheets/Apps Script) <<<
+   Sem token: o Apps Script é usado apenas como base de dados.
+   Nesta aba NÃO há banco local — os pedidos vivem na planilha.
    ============================================================ */
-const PO_KEY = "insp_zeladoria_compras_v1";
+
+/* (Opcional) Preencha para publicar já conectado. Deixe vazio para
+   distribuir o acesso apenas pelo "link p/ equipe". */
+const CLOUD_DEFAULT = { url:"" };
+
 const PO_STATUS = ["Pendente","Em cotação","Comprado","Disponível para retirada","Retirado"];
+const CLOUD_CFG_KEY = "insp_zeladoria_cloud_cfg_v3";
 
-function loadPO(){
-  try{ const raw=localStorage.getItem(PO_KEY); return raw? JSON.parse(raw):[]; }
-  catch(e){ return []; }
-}
-function savePO(list){
-  try{ localStorage.setItem(PO_KEY, JSON.stringify(list)); return true; }
-  catch(e){ toast("Memória cheia ao salvar pedidos."); return false; }
-}
-function currentInspId(){
-  if(!STATE.meta) STATE.meta={};
-  if(!STATE.meta.inspId) STATE.meta.inspId = "INS"+Date.now();
-  return STATE.meta.inspId;
-}
+let PO_CACHE = [];   // memória apenas (NÃO persiste em localStorage)
 
-/* Envia/atualiza os materiais da inspeção atual para o painel do comprador */
-function syncCurrentInspectionToPO(showMsg){
-  collectDados();
-  const d = STATE.dados || {};
-  const inspId = currentInspId();
-  const mats = collectMats();
-  let store = loadPO();
-  let novos=0, atualizados=0;
-  mats.forEach(m=>{
-    const key = inspId+"::"+m.n;
-    let po = store.find(p=>p.key===key);
-    if(!po){
-      po = {
-        key, id:"PO"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-        inspId, createdAt:Date.now(), updatedAt:Date.now(),
-        item:m.n, titulo:m.titulo||"", desc:m.desc||"", cod:m.cod||"",
-        qtd:m.qtd||"", un:m.un||"un",
-        local:d.local||"", setor:d.setor||"", om:d.om||"",
-        zelador:d.zelador||d.inspetor||"", contato:d.contato||"",
-        status:"Pendente", localRetirada:d.local||"",
-        historico:[{status:"Pendente", ts:Date.now()}], notifiedAt:null
-      };
-      store.push(po); novos++;
-    } else {
-      po.desc=m.desc||po.desc; po.cod=m.cod||po.cod; po.qtd=m.qtd||po.qtd;
-      po.un=m.un||po.un; po.titulo=m.titulo||po.titulo;
-      po.local=d.local||po.local; po.setor=d.setor||po.setor; po.om=d.om||po.om;
-      po.zelador=(d.zelador||d.inspetor||po.zelador); po.contato=(d.contato||po.contato);
-      po.updatedAt=Date.now();
-      atualizados++;
+/* ---------- CONFIG (só URL): hash do link > constante > localStorage ---------- */
+function cloudCfg(){
+  try{
+    const h=(location.hash||"").replace(/^#/,"");
+    if(h){
+      const p=new URLSearchParams(h);
+      const u=p.get("u");
+      if(u) return { url:decodeURIComponent(u), from:"link" };
     }
-  });
-  savePO(store);
-  if(showMsg) toast("Pedidos enviados ✔  ("+novos+" novo(s), "+atualizados+" atualizado(s))");
-  renderCompras();
-  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
+  }catch(e){}
+  if(CLOUD_DEFAULT.url) return { url:CLOUD_DEFAULT.url, from:"const" };
+  try{ const c=JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{}; c.from="local"; return c; }catch(e){ return {}; }
+}
+function saveCloudCfg(){
+  const cfg={ url:(val("cloud_url")||"").trim() };
+  localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cfg));
+  toast("Configuração salva 💾");
+  refreshCompras();
+}
+function loadCloudCfgToForm(){
+  const cfg=cloudCfg();
+  setVal("cloud_url",cfg.url);
+}
+function copyShareLink(){
+  const url=(val("cloud_url")||"").trim();
+  if(!url){ toast("Preencha a URL do Web App primeiro."); return; }
+  const base=location.origin+location.pathname;
+  const link=base+"#u="+encodeURIComponent(url);
+  try{ navigator.clipboard.writeText(link); toast("Link da equipe copiado 🔗"); }
+  catch(e){ prompt("Copie o link da equipe:", link); }
 }
 
-function poByKey(k){ return loadPO().find(p=>p.key===k); }
+/* ---------- BADGE DE STATUS ONLINE ---------- */
+function setOnline(state,msg){
+  const b=document.getElementById("onlineBadge"), m=document.getElementById("onlineMsg");
+  if(!b||!m) return;
+  b.className="online-badge "+(state==="on"?"on":state==="loading"?"loading":"off");
+  const dot=b.querySelector(".cloud-dot"); if(dot) dot.className="cloud-dot "+(state==="on"?"on":state==="loading"?"loading":"off");
+  m.innerHTML=(state==="loading"?'<span class="spin"></span> ':'')+msg;
+}
 
-function setPOStatus(encKey,val){
-  const k=decodeURIComponent(encKey);
-  let store=loadPO(); const po=store.find(p=>p.key===k);
-  if(!po) return;
-  po.status=val;
-  po.historico=po.historico||[];
-  po.historico.push({status:val, ts:Date.now()});
-  po.updatedAt=Date.now();
-  savePO(store); renderCompras();
-  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
+/* ---------- CHAMADA À API (Apps Script) ---------- */
+async function cloudRequest(action, payload){
+  const cfg=cloudCfg();
+  if(!cfg.url) throw new Error("URL do Web App não configurada");
+  const body=Object.assign({action}, payload||{});
+  const res=await fetch(cfg.url,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body) });
+  const txt=await res.text();
+  let data; try{ data=JSON.parse(txt); }catch(e){ throw new Error("Resposta inválida (verifique a URL/implantação /exec)"); }
+  if(!data.ok) throw new Error(data.error||"Falha no servidor");
+  return data;
 }
-function setPOPickup(encKey,val){
-  const k=decodeURIComponent(encKey);
-  let store=loadPO(); const po=store.find(p=>p.key===k);
-  if(!po) return;
-  po.localRetirada=val; po.updatedAt=Date.now(); savePO(store);
+async function testCloud(){
+  setOnline("loading","Testando conexão...");
+  try{ const d=await cloudRequest("list",{}); setOnline("on","Online ✔ ("+((d.rows||[]).length)+" pedido(s) na planilha)"); }
+  catch(e){ setOnline("off","Erro: "+e.message); }
 }
-function markReadyAndNotify(encKey,ch){
-  const k=decodeURIComponent(encKey);
-  let store=loadPO(); const po=store.find(p=>p.key===k);
-  if(!po) return;
-  if(po.status!=="Disponível para retirada"){
-    po.status="Disponível para retirada";
-    po.historico=po.historico||[]; po.historico.push({status:po.status, ts:Date.now()});
-    po.updatedAt=Date.now();
-    savePO(store);
-    if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
+
+/* ---------- NORMALIZAÇÃO ---------- */
+function normalizeCloud(cp){
+  let hist=cp.historico;
+  if(typeof hist==="string"){ try{ hist=JSON.parse(hist); }catch(e){ hist=[]; } }
+  return {
+    key:cp.key, id:cp.id, inspId:cp.inspId, createdAt:+cp.createdAt||Date.now(),
+    item:cp.item||"", titulo:cp.titulo||"", desc:cp.desc||"", cod:cp.cod||"",
+    qtd:cp.qtd||"", un:cp.un||"un", local:cp.local||"", setor:cp.setor||"", om:cp.om||"",
+    zelador:cp.zelador||"", contato:cp.contato||"", status:cp.status||"Pendente",
+    localRetirada:cp.localRetirada||"", notifiedAt:cp.notifiedAt?(+cp.notifiedAt):null,
+    updatedAt:+cp.updatedAt||Date.now(), historico:hist||[]
+  };
+}
+
+/* ---------- LISTAR (fonte única = nuvem) ---------- */
+async function cloudList(){
+  const d=await cloudRequest("list",{});
+  PO_CACHE=(d.rows||[]).map(normalizeCloud);
+  return PO_CACHE;
+}
+async function refreshCompras(){
+  const cfg=cloudCfg();
+  if(!cfg.url){ setOnline("off","Desconectado — configure a URL abaixo"); document.getElementById("comprasList").innerHTML=`<p class="empty">Configure a URL e toque em <b>Atualizar</b>.</p>`; return; }
+  setOnline("loading","Carregando pedidos da planilha...");
+  try{
+    await cloudList();
+    setOnline("on","Online ✔ ("+PO_CACHE.length+" pedido(s)) • fonte: Google Sheets");
+    renderComprasFromCache();
+  }catch(e){
+    setOnline("off","Erro ao carregar: "+e.message);
+    document.getElementById("comprasList").innerHTML=`<p class="empty" style="color:var(--nc)">Não foi possível conectar.<br>${esc(e.message)}</p>`;
   }
-  notifyZelador(encKey,ch);
 }
 
-function normPhone(s){
-  let d=(s||"").replace(/\D/g,"");
-  if(!d) return "";
-  if(d.length<=11) d="55"+d;   // assume Brasil
-  return d;
+/* ---------- ATUALIZAÇÕES (gravam DIRETO na nuvem) ---------- */
+function poByKeyCache(k){ return PO_CACHE.find(p=>p.key===k); }
+async function pushRow(po){
+  po.updatedAt=Date.now();
+  await cloudRequest("update",{row:po});
 }
+async function setPOStatus(encKey,valStatus){
+  const po=poByKeyCache(decodeURIComponent(encKey)); if(!po) return;
+  po.status=valStatus; po.historico=po.historico||[]; po.historico.push({status:valStatus,ts:Date.now()});
+  setOnline("loading","Salvando status...");
+  try{ await pushRow(po); toast("Status salvo online ✔"); }catch(e){ toast("Erro: "+e.message); }
+  await refreshCompras();
+}
+async function setPOPickup(encKey,valLocal){
+  const po=poByKeyCache(decodeURIComponent(encKey)); if(!po) return;
+  po.localRetirada=valLocal;
+  try{ await pushRow(po); toast("Local de retirada salvo ✔"); }catch(e){ toast("Erro: "+e.message); }
+}
+async function markReadyAndNotify(encKey,ch){
+  const po=poByKeyCache(decodeURIComponent(encKey)); if(!po) return;
+  const phone=normPhone(po.contato);
+  po.status="Disponível para retirada";
+  po.historico=po.historico||[]; po.historico.push({status:po.status,ts:Date.now()});
+  if(phone){ po.notifiedAt=Date.now(); po.historico.push({status:"Notificado ("+ch+")",ts:Date.now()}); }
+  setOnline("loading","Salvando e preparando aviso...");
+  try{ await pushRow(po); }catch(e){ toast("Erro ao salvar: "+e.message); }
+  const msg=buildNotifMsg(po);
+  if(!phone){
+    try{ await navigator.clipboard.writeText(msg); toast("Sem contato — mensagem copiada 📋"); }catch(e){ toast("Preencha o contato do zelador."); }
+  } else {
+    const link=(ch==="wa")? "https://wa.me/"+phone+"?text="+encodeURIComponent(msg)
+                          : "sms:+"+phone+"?body="+encodeURIComponent(msg);
+    window.open(link,"_blank");
+  }
+  await refreshCompras();
+}
+function copyNotif(encKey){
+  const po=poByKeyCache(decodeURIComponent(encKey)); if(!po) return;
+  const msg=buildNotifMsg(po);
+  try{ navigator.clipboard.writeText(msg); toast("Mensagem copiada 📋"); }catch(e){ toast("Não foi possível copiar."); }
+}
+async function removePO(encKey){
+  const k=decodeURIComponent(encKey);
+  if(!confirm("Remover este pedido da planilha? (afeta todos)")) return;
+  setOnline("loading","Removendo...");
+  try{ await cloudRequest("delete",{key:k}); toast("Pedido removido"); }catch(e){ toast("Erro: "+e.message); }
+  await refreshCompras();
+}
+async function clearRetirados(){
+  const retirados=PO_CACHE.filter(p=>p.status==="Retirado");
+  if(retirados.length===0){ toast("Nenhum pedido retirado."); return; }
+  if(!confirm("Remover "+retirados.length+" pedido(s) retirado(s) da planilha?")) return;
+  setOnline("loading","Limpando...");
+  try{ for(const p of retirados){ await cloudRequest("delete",{key:p.key}); } toast("Retirados removidos"); }
+  catch(e){ toast("Erro: "+e.message); }
+  await refreshCompras();
+}
+
+/* ---------- NOTIFICAÇÃO ---------- */
+function normPhone(s){ let d=(s||"").replace(/\D/g,""); if(!d) return ""; if(d.length<=11) d="55"+d; return d; }
 function buildNotifMsg(po){
-  const ret = po.localRetirada || po.local || "(a informar)";
+  const ret=po.localRetirada||po.local||"(a informar)";
   if(po.status==="Disponível para retirada"){
     return "Ola "+(po.zelador||"")+", aqui e da equipe de Suprimentos/Zeladoria.\n"+
       "O material que voce solicitou na inspecao"+(po.local?(" ("+po.local+")"):"")+" ja esta DISPONIVEL para retirada.\n"+
@@ -1145,59 +1221,12 @@ function buildNotifMsg(po){
       "Por favor, retirar quando possivel. Obrigado!";
   }
   return "Ola "+(po.zelador||"")+", atualizacao do seu pedido (inspecao"+(po.local?(" "+po.local):"")+").\n"+
-    "Item: "+po.item+" - "+(po.desc||po.titulo||"material")+"\n"+
-    "Status atual: "+po.status+".";
-}
-function notifyZelador(encKey,ch){
-  const k=decodeURIComponent(encKey);
-  let store=loadPO(); const po=store.find(p=>p.key===k);
-  if(!po) return;
-  const phone=normPhone(po.contato);
-  const msg=buildNotifMsg(po);
-  if(!phone){
-    try{ navigator.clipboard.writeText(msg); toast("Sem contato do zelador. Mensagem copiada 📋"); }
-    catch(e){ toast("Preencha o contato do zelador na aba Dados."); }
-    return;
-  }
-  let link;
-  if(ch==="wa") link="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
-  else link="sms:+"+phone+"?body="+encodeURIComponent(msg);
-  po.notifiedAt=Date.now(); po.updatedAt=Date.now();
-  po.historico=po.historico||[]; po.historico.push({status:"Notificado ("+ch+")", ts:Date.now()});
-  savePO(store);
-  window.open(link,"_blank");
-  renderCompras();
-  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
-}
-function copyNotif(encKey){
-  const k=decodeURIComponent(encKey);
-  const po=poByKey(k); if(!po) return;
-  const msg=buildNotifMsg(po);
-  try{ navigator.clipboard.writeText(msg); toast("Mensagem copiada 📋"); }
-  catch(e){ toast("Não foi possível copiar."); }
-}
-function removePO(encKey){
-  const k=decodeURIComponent(encKey);
-  if(!confirm("Remover este pedido do painel do comprador?")) return;
-  let store=loadPO().filter(p=>p.key!==k);
-  savePO(store); renderCompras(); toast("Pedido removido");
-}
-function clearRetirados(){
-  const store=loadPO();
-  const rest=store.filter(p=>p.status!=="Retirado");
-  if(rest.length===store.length){ toast("Nenhum pedido retirado para limpar."); return; }
-  if(!confirm("Remover "+(store.length-rest.length)+" pedido(s) já retirado(s)?")) return;
-  savePO(rest); renderCompras(); toast("Pedidos retirados removidos");
+    "Item: "+po.item+" - "+(po.desc||po.titulo||"material")+"\nStatus atual: "+po.status+".";
 }
 
-function sttClass(s){
-  return {"Pendente":"stt-pd","Em cotação":"stt-cot","Comprado":"stt-comp",
-          "Disponível para retirada":"stt-disp","Retirado":"stt-ret"}[s]||"stt-pd";
-}
-function cardClass(s){
-  return {"Em cotação":"s-cot","Comprado":"s-comp","Disponível para retirada":"s-disp","Retirado":"s-ret"}[s]||"";
-}
-
+/* ---------- RENDER (a partir do cache já baixado) ---------- */
+function sttClass(s){ return {"Pendente":"stt-pd","Em cotação":"stt-cot","Comprado":"stt-comp","Disponível para retirada":"stt-disp","Retirado":"stt-ret"}[s]||"stt-pd"; }
+function cardClass(s){ return {"Em cotação":"s-cot","Comprado":"s-comp","Disponível para retirada":"s-disp","Retirado":"s-ret"}[s]||""; }
 function poCardHTML(p){
   const ek=encodeURIComponent(p.key);
   const opts=PO_STATUS.map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join("");
@@ -1216,14 +1245,8 @@ function poCardHTML(p){
       <span class="status-pill ${sttClass(p.status)}">${esc(p.status)}</span>
     </div>
     <div class="po-ctrls">
-      <div>
-        <label>Status do pedido</label>
-        <select onchange="setPOStatus('${ek}',this.value)">${opts}</select>
-      </div>
-      <div>
-        <label>Local de retirada</label>
-        <input type="text" value="${escAttr(p.localRetirada)}" onchange="setPOPickup('${ek}',this.value)" placeholder="Ex.: Almoxarifado Tubarão">
-      </div>
+      <div><label>Status do pedido</label><select onchange="setPOStatus('${ek}',this.value)">${opts}</select></div>
+      <div><label>Local de retirada</label><input type="text" value="${escAttr(p.localRetirada)}" onchange="setPOPickup('${ek}',this.value)" placeholder="Ex.: Almoxarifado Tubarão"></div>
     </div>
     ${ready?`<div class="ready-flag">✅ Material disponível! Avise o zelador para retirar em <b>${esc(p.localRetirada)||"(informe o local acima)"}</b>.</div>`:""}
     <div class="po-actions">
@@ -1232,42 +1255,29 @@ function poCardHTML(p){
       <button class="mini-btn mb-copy" onclick="copyNotif('${ek}')">📋 Copiar aviso</button>
       <button class="mini-btn mb-del" onclick="removePO('${ek}')">🗑</button>
     </div>
-    ${p.notifiedAt?`<div class="notif-badge">✔ Zelador notificado em ${new Date(p.notifiedAt).toLocaleString('pt-BR')}</div>`:(hasPhone?"":`<div class="notif-badge" style="color:var(--nc)">⚠ Sem contato do zelador — preencha na aba Dados</div>`)}
+    ${p.notifiedAt?`<div class="notif-badge">✔ Zelador notificado em ${new Date(p.notifiedAt).toLocaleString('pt-BR')}</div>`:(hasPhone?"":`<div class="notif-badge" style="color:var(--nc)">⚠ Sem contato do zelador</div>`)}
   </div>`;
 }
-
-function renderCompras(){
-  const store=loadPO();
+function renderComprasFromCache(){
   const fStatus=(document.getElementById("cf_status")||{}).value||"Todos";
   const fLocal=((document.getElementById("cf_local")||{}).value||"").toLowerCase();
   const fText=((document.getElementById("cf_text")||{}).value||"").toLowerCase();
-
-  const kc={tot:store.length,pd:0,cp:0,dp:0};
-  store.forEach(p=>{
+  const kc={tot:PO_CACHE.length,pd:0,cp:0,dp:0};
+  PO_CACHE.forEach(p=>{
     if(p.status==="Pendente"||p.status==="Em cotação") kc.pd++;
     if(p.status==="Comprado") kc.cp++;
     if(p.status==="Disponível para retirada") kc.dp++;
   });
   setTxt("c_tot",kc.tot); setTxt("c_pd",kc.pd); setTxt("c_cp",kc.cp); setTxt("c_dp",kc.dp);
-
-  let list=store.filter(p=>{
+  let list=PO_CACHE.filter(p=>{
     if(fStatus!=="Todos" && p.status!==fStatus) return false;
     if(fLocal && !(p.local||"").toLowerCase().includes(fLocal)) return false;
-    if(fText){
-      const blob=((p.desc||"")+" "+(p.item||"")+" "+(p.titulo||"")+" "+(p.zelador||"")).toLowerCase();
-      if(!blob.includes(fText)) return false;
-    }
+    if(fText){ const blob=((p.desc||"")+" "+(p.item||"")+" "+(p.titulo||"")+" "+(p.zelador||"")).toLowerCase(); if(!blob.includes(fText)) return false; }
     return true;
   });
-
-  const box=document.getElementById("comprasList");
-  if(!box) return;
-  if(list.length===0){
-    box.innerHTML=`<p class="empty">Nenhum pedido encontrado.<br>Preencha as solicitações de material na aba <b>Inspeção</b> e toque em <b>Sincronizar</b>.</p>`;
-    return;
-  }
-  const groups={};
-  list.forEach(p=>{ (groups[p.inspId]=groups[p.inspId]||[]).push(p); });
+  const box=document.getElementById("comprasList"); if(!box) return;
+  if(list.length===0){ box.innerHTML=`<p class="empty">Nenhum pedido encontrado.</p>`; return; }
+  const groups={}; list.forEach(p=>{ (groups[p.inspId]=groups[p.inspId]||[]).push(p); });
   let html="";
   Object.keys(groups).forEach(gid=>{
     const arr=groups[gid]; const g=arr[0];
@@ -1281,169 +1291,112 @@ function renderCompras(){
   box.innerHTML=html;
 }
 
-/* ---- HISTÓRICO ---- */
-function renderHistorico(){
+/* ---------- HISTÓRICO (online) ---------- */
+async function refreshHistorico(){
+  const cfg=cloudCfg();
+  if(!cfg.url){ toast("Configure a URL primeiro."); return; }
+  try{ await cloudList(); renderHistoricoFromCache(); toast("Histórico atualizado ✔"); }
+  catch(e){ toast("Erro: "+e.message); }
+}
+function renderHistoricoFromCache(){
   const mode=(document.getElementById("hf_status")||{}).value||"Efetivados";
-  let store=loadPO();
-  if(mode==="Efetivados"){
-    store=store.filter(p=>["Comprado","Disponível para retirada","Retirado"].includes(p.status));
-  }
+  let store=PO_CACHE.slice();
+  if(mode==="Efetivados") store=store.filter(p=>["Comprado","Disponível para retirada","Retirado"].includes(p.status));
   const mat={};
   store.forEach(p=>{
     const key=(p.desc||p.titulo||"(sem descrição)").trim().toLowerCase();
-    if(!mat[key]) mat[key]={nome:(p.desc||p.titulo||"(sem descrição)"), qtd:0, count:0, un:p.un||""};
-    const q=parseFloat((p.qtd||"").toString().replace(",","."));
-    if(!isNaN(q)) mat[key].qtd+=q;
+    if(!mat[key]) mat[key]={nome:(p.desc||p.titulo||"(sem descrição)"),qtd:0,count:0,un:p.un||""};
+    const q=parseFloat((p.qtd||"").toString().replace(",",".")); if(!isNaN(q)) mat[key].qtd+=q;
     mat[key].count++;
   });
   const mArr=Object.values(mat).sort((a,b)=>b.count-a.count);
   const mBox=document.getElementById("histMaterial");
-  if(mArr.length===0){ mBox.innerHTML=`<p class="empty">Sem registros.</p>`; }
-  else{
-    mBox.innerHTML=`<table class="hist-table"><tr><th>Material</th><th>Qtd total</th><th>Pedidos</th></tr>`+
-      mArr.map(m=>`<tr><td>${esc(m.nome)}</td><td>${m.qtd? (Math.round(m.qtd*100)/100):"—"} ${esc(m.un)}</td><td>${m.count}</td></tr>`).join("")+`</table>`;
-  }
+  mBox.innerHTML = mArr.length===0 ? `<p class="empty">Sem registros.</p>` :
+    `<table class="hist-table"><tr><th>Material</th><th>Qtd total</th><th>Pedidos</th></tr>`+
+    mArr.map(m=>`<tr><td>${esc(m.nome)}</td><td>${m.qtd?(Math.round(m.qtd*100)/100):"—"} ${esc(m.un)}</td><td>${m.count}</td></tr>`).join("")+`</table>`;
   const loc={};
   store.forEach(p=>{
     const key=(p.local||"(sem local)").trim().toLowerCase();
-    if(!loc[key]) loc[key]={nome:(p.local||"(sem local)"), count:0, disp:0, ret:0};
+    if(!loc[key]) loc[key]={nome:(p.local||"(sem local)"),count:0,disp:0,ret:0};
     loc[key].count++;
     if(p.status==="Disponível para retirada") loc[key].disp++;
     if(p.status==="Retirado") loc[key].ret++;
   });
   const lArr=Object.values(loc).sort((a,b)=>b.count-a.count);
   const lBox=document.getElementById("histLocal");
-  if(lArr.length===0){ lBox.innerHTML=`<p class="empty">Sem registros.</p>`; }
-  else{
-    lBox.innerHTML=`<table class="hist-table"><tr><th>Local</th><th>Pedidos</th><th>Disp.</th><th>Retirados</th></tr>`+
-      lArr.map(l=>`<tr><td>${esc(l.nome)}</td><td>${l.count}</td><td>${l.disp}</td><td>${l.ret}</td></tr>`).join("")+`</table>`;
-  }
+  lBox.innerHTML = lArr.length===0 ? `<p class="empty">Sem registros.</p>` :
+    `<table class="hist-table"><tr><th>Local</th><th>Pedidos</th><th>Disp.</th><th>Retirados</th></tr>`+
+    lArr.map(l=>`<tr><td>${esc(l.nome)}</td><td>${l.count}</td><td>${l.disp}</td><td>${l.ret}</td></tr>`).join("")+`</table>`;
 }
 
 function switchSub(name){
   document.querySelectorAll(".subtab").forEach(t=>t.classList.toggle("active",t.dataset.sub===name));
   document.querySelectorAll(".subview").forEach(v=>v.classList.remove("active"));
   document.getElementById("sub-"+name).classList.add("active");
-  if(name==="historico") renderHistorico();
-  if(name==="pedidos") renderCompras();
+  if(name==="historico") refreshHistorico();
+  if(name==="pedidos") refreshCompras();
 }
 
 function exportComprasCSV(){
-  const store=loadPO();
-  if(store.length===0){ toast("Nenhum pedido para exportar."); return; }
+  if(PO_CACHE.length===0){ toast("Nada para exportar. Atualize da nuvem."); return; }
   const head=["Inspecao_ID","Data","Local","Setor","OM","Item","Material","Codigo","Qtd","Un","Zelador","Contato","Status","Local_Retirada","Notificado_em"];
-  const rows=store.map(p=>[
-    p.inspId, new Date(p.createdAt).toLocaleDateString('pt-BR'), p.local, p.setor, p.om,
-    p.item, p.desc||p.titulo, p.cod, p.qtd, p.un, p.zelador, p.contato, p.status,
-    p.localRetirada, p.notifiedAt? new Date(p.notifiedAt).toLocaleString('pt-BR'):""
-  ]);
-  const csv=[head].concat(rows).map(r=>r.map(c=>{
-    let v=(c==null?"":String(c));
-    if(/[";\n]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
-    return v;
-  }).join(";")).join("\n");
+  const rows=PO_CACHE.map(p=>[p.inspId,new Date(p.createdAt).toLocaleDateString('pt-BR'),p.local,p.setor,p.om,p.item,p.desc||p.titulo,p.cod,p.qtd,p.un,p.zelador,p.contato,p.status,p.localRetirada,p.notifiedAt?new Date(p.notifiedAt).toLocaleString('pt-BR'):""]);
+  const csv=[head].concat(rows).map(r=>r.map(c=>{let v=(c==null?"":String(c)); if(/[";\n]/.test(v)) v='"'+v.replace(/"/g,'""')+'"'; return v;}).join(";")).join("\n");
   const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement("a");
-  a.href=url; a.download="pedidos_compras_zeladoria.csv";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url),1500);
-  toast("CSV exportado ⬇️");
+  const url=URL.createObjectURL(blob); const a=document.createElement("a");
+  a.href=url; a.download="pedidos_compras_zeladoria.csv"; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500); toast("CSV exportado ⬇️");
 }
 function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
 
 /* ============================================================
-   >>> NUVEM — GOOGLE SHEETS (Apps Script Web App) <<<
+   >>> PONTE INSPEÇÃO (offline) -> COMPRAS (nuvem) <<<
    ============================================================ */
-const CLOUD_KEY="insp_zeladoria_cloud_cfg_v1";
-function cloudCfg(){ try{ return JSON.parse(localStorage.getItem(CLOUD_KEY))||{}; }catch(e){ return {}; } }
-function saveCloudCfg(){
-  const cfg={
-    url:(val("cloud_url")||"").trim(),
-    token:(val("cloud_token")||"").trim(),
-    auto:(document.getElementById("cloud_auto")||{}).checked || false
-  };
-  localStorage.setItem(CLOUD_KEY, JSON.stringify(cfg));
-  cloudStatus(cfg.url?"Configuração salva ✔":"Salvo (sem URL — modo offline)", cfg.url?"ok":"");
+function currentInspId(){
+  if(!STATE.meta) STATE.meta={};
+  if(!STATE.meta.inspId) STATE.meta.inspId="INS"+Date.now();
+  return STATE.meta.inspId;
 }
-function loadCloudCfgToForm(){
+async function sendInspectionToCloud(showMsg){
   const cfg=cloudCfg();
-  setVal("cloud_url",cfg.url); setVal("cloud_token",cfg.token);
-  const a=document.getElementById("cloud_auto"); if(a) a.checked=!!cfg.auto;
-  cloudStatus(cfg.url?("Conectado a: "+shortUrl(cfg.url)):"Desconectado", cfg.url?"ok":"off");
-}
-function shortUrl(u){ try{ return u.replace(/^https?:\/\//,"").slice(0,42)+"…"; }catch(e){ return u; } }
-function cloudStatus(msg,cls){
-  const el=document.getElementById("cloudStatus"); if(!el) return;
-  const dot = cls==="ok"?'<span class="cloud-dot on"></span>':(cls==="err"?'<span class="cloud-dot off"></span>':'<span class="cloud-dot"></span>');
-  el.innerHTML=dot+msg;
-  el.style.color = cls==="err"?"var(--nc)":(cls==="ok"?"var(--vale-teal-d)":"var(--muted)");
-}
-async function cloudRequest(action, payload){
-  const cfg=cloudCfg();
-  if(!cfg.url) throw new Error("URL do Web App não configurada");
-  const body=Object.assign({action, token:cfg.token}, payload||{});
-  // text/plain evita preflight CORS com Apps Script
-  const res=await fetch(cfg.url,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body) });
-  const txt=await res.text();
-  let data; try{ data=JSON.parse(txt); }catch(e){ throw new Error("Resposta inválida do servidor (verifique a URL/implantação)"); }
-  if(!data.ok) throw new Error(data.error||"Falha no servidor");
-  return data;
-}
-async function testCloud(){
-  cloudStatus("Testando conexão...");
+  if(!cfg.url){ toast("Configure a URL na aba Compras para enviar pedidos."); document.querySelector('.tab[data-view="compras"]').click(); return; }
+  collectDados(); const d=STATE.dados||{};
+  const inspId=currentInspId();
+  const mats=collectMats();
+  if(mats.length===0){ toast("Nenhum material solicitado nesta inspeção."); return; }
+  setOnline("loading","Enviando pedidos à planilha...");
   try{
-    const d=await cloudRequest("list",{});
-    cloudStatus("Conexão OK ✔ ("+((d.rows||[]).length)+" registro(s) na planilha)","ok");
-  }catch(e){ cloudStatus("Erro: "+e.message,"err"); }
-}
-async function pushToCloud(silent){
-  const cfg=cloudCfg();
-  if(!cfg.url){ if(!silent) cloudStatus("Configure a URL primeiro","err"); return; }
-  const rows=loadPO();
-  if(rows.length===0){ if(!silent) cloudStatus("Nada para enviar","err"); return; }
-  try{
-    if(!silent) cloudStatus("Enviando "+rows.length+" pedido(s)...");
-    const d=await cloudRequest("upsert",{rows});
-    if(!silent) cloudStatus("Enviado ✔ ("+(d.upserted!=null?d.upserted:rows.length)+" registro(s))","ok");
-  }catch(e){ if(!silent) cloudStatus("Erro ao enviar: "+e.message,"err"); }
-}
-function normalizeCloud(cp){
-  let hist=cp.historico;
-  if(typeof hist==="string"){ try{ hist=JSON.parse(hist); }catch(e){ hist=[]; } }
-  return {
-    key:cp.key, id:cp.id, inspId:cp.inspId, createdAt:+cp.createdAt||Date.now(),
-    item:cp.item||"", titulo:cp.titulo||"", desc:cp.desc||"", cod:cp.cod||"",
-    qtd:cp.qtd||"", un:cp.un||"un", local:cp.local||"", setor:cp.setor||"", om:cp.om||"",
-    zelador:cp.zelador||"", contato:cp.contato||"", status:cp.status||"Pendente",
-    localRetirada:cp.localRetirada||"", notifiedAt:cp.notifiedAt?(+cp.notifiedAt):null,
-    updatedAt:+cp.updatedAt||Date.now(), historico:hist||[]
-  };
-}
-async function pullFromCloud(silent){
-  const cfg=cloudCfg();
-  if(!cfg.url){ if(!silent) cloudStatus("Configure a URL primeiro","err"); return; }
-  try{
-    if(!silent) cloudStatus("Baixando da nuvem...");
-    const d=await cloudRequest("list",{});
-    const cloud=d.rows||[];
-    const local=loadPO();
-    const map={}; local.forEach(p=>map[p.key]=p);
-    let add=0,upd=0;
-    cloud.forEach(raw=>{
-      const cp=normalizeCloud(raw);
-      const lp=map[cp.key];
-      const cu=+cp.updatedAt||0, lu=lp?(+lp.updatedAt||0):-1;
-      if(!lp){ map[cp.key]=cp; add++; }
-      else if(cu>=lu){ map[cp.key]=Object.assign({}, lp, cp); upd++; }
+    await cloudList();
+    const rows=mats.map(m=>{
+      const key=inspId+"::"+m.n;
+      const ex=PO_CACHE.find(p=>p.key===key);
+      if(ex){
+        return Object.assign({}, ex, {
+          desc:m.desc||ex.desc, titulo:m.titulo||ex.titulo, cod:m.cod||ex.cod,
+          qtd:m.qtd||ex.qtd, un:m.un||ex.un,
+          local:d.local||ex.local, setor:d.setor||ex.setor, om:d.om||ex.om,
+          zelador:(d.zelador||d.inspetor||ex.zelador), contato:(d.contato||ex.contato),
+          updatedAt:Date.now()
+        });
+      }
+      return {
+        key, id:"PO"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        inspId, createdAt:Date.now(), updatedAt:Date.now(),
+        item:m.n, titulo:m.titulo||"", desc:m.desc||"", cod:m.cod||"", qtd:m.qtd||"", un:m.un||"un",
+        local:d.local||"", setor:d.setor||"", om:d.om||"", zelador:d.zelador||d.inspetor||"", contato:d.contato||"",
+        status:"Pendente", localRetirada:d.local||"", notifiedAt:null,
+        historico:[{status:"Pendente",ts:Date.now()}]
+      };
     });
-    const merged=Object.keys(map).map(k=>map[k]);
-    savePO(merged);
-    renderCompras();
-    if(!silent) cloudStatus("Sincronizado ✔ ("+add+" novo(s), "+upd+" atualizado(s))","ok");
-  }catch(e){ if(!silent) cloudStatus("Erro ao baixar: "+e.message,"err"); }
+    await cloudRequest("upsert",{rows});
+    setOnline("on","Enviado ✔ ("+rows.length+" pedido(s) na planilha)");
+    if(showMsg) toast("Pedidos enviados à nuvem ✔ ("+rows.length+")");
+  }catch(e){
+    setOnline("off","Erro ao enviar: "+e.message);
+    if(showMsg) toast("Erro ao enviar: "+e.message);
+  }
 }
-/* >>> FIM MÓDULO COMPRAS/NUVEM <<< */
+/* >>> FIM MÓDULO COMPRAS ONLINE <<< */
 
 
 /* ============================================================
@@ -1458,7 +1411,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
     document.getElementById("view-"+v).classList.add("active");
     if(v==="resumo") renderResumo();
     if(v==="relatorio") renderReport();
-    if(v==="compras"){ syncCurrentInspectionToPO(false); if(cloudCfg().auto && cloudCfg().url){ pullFromCloud(true); } renderCompras(); }
+    if(v==="compras"){ refreshCompras(); }
     window.scrollTo(0,0);
   };
 });
