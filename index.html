@@ -53,6 +53,35 @@
     border-bottom:3px solid transparent;cursor:pointer;user-select:none;
   }
   .tab.active{color:var(--vale-teal);border-bottom-color:var(--vale-teal);}
+  /* ---------- CONTROLE DE ACESSO (Admin) ---------- */
+  /* Por padrão (equipe de campo) as abas restritas ficam ocultas.
+     Quando o body recebe .is-admin, elas aparecem. */
+  .tab-admin{display:none;}
+  body.is-admin .tab-admin{display:block;}
+  .admin-btn{
+    background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
+    width:38px;height:38px;min-width:38px;border-radius:10px;font-size:16px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:.15s;
+  }
+  .admin-btn:active{transform:scale(.95);}
+  body.is-admin .admin-btn{background:var(--vale-yellow);border-color:var(--vale-yellow-d);color:var(--vale-teal-d);}
+  /* Modal de PIN */
+  .modal-bg{
+    position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:none;
+    align-items:center;justify-content:center;padding:20px;
+  }
+  .modal-bg.show{display:flex;}
+  .modal{
+    background:#fff;border-radius:16px;padding:22px;max-width:340px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,.3);
+  }
+  .modal h3{margin:0 0 6px;color:var(--vale-teal-d);font-size:17px;display:flex;align-items:center;gap:8px;}
+  .modal p{margin:0 0 14px;font-size:13px;color:var(--muted);}
+  .modal input{width:100%;padding:13px;border:1.5px solid var(--line);border-radius:10px;font-size:20px;text-align:center;letter-spacing:6px;font-weight:700;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;}
+  .modal-actions .btn{flex:1;padding:12px;border-radius:10px;font-weight:700;border:none;cursor:pointer;}
+  .modal .m-ok{background:var(--vale-teal);color:#fff;}
+  .modal .m-cancel{background:#eef2f3;color:var(--txt);}
+  .modal .m-err{color:var(--nc);font-size:12px;font-weight:600;margin-top:8px;min-height:16px;text-align:center;}
   /* ---------- CONTAINER ---------- */
   .container{max-width:820px;margin:0 auto;padding:14px;}
   .view{display:none;}
@@ -242,20 +271,22 @@
         <text x="56" y="33" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="700" letter-spacing="1" fill="#4d4d4f">VALE</text>
       </svg>
     </div>
-    <div class="hd-txt">
+    <div class="hd-txt" style="flex:1;">
       <h1>Inspeção Zeladoria</h1>
       <p id="hdSub">Vestiários • Sanitários • Louças e Acabamentos</p>
-      <p style="margin:2px 0 0;font-size:9px;opacity:.6;">v29 • build 2026-09-02</p>
+      <p style="margin:2px 0 0;font-size:9px;opacity:.6;">v32 • build 2026-09-02</p>
     </div>
+    <!-- Acesso do Administrador (equipe de campo não usa) -->
+    <button id="adminBtn" class="admin-btn" onclick="toggleAdmin()" title="Acesso do administrador" aria-label="Acesso do administrador">🔒</button>
   </div>
   <div class="progress-wrap"><div class="progress-bar" id="progBar"></div></div>
   <div class="progress-lbl"><span id="progTxt">0 de 0 itens</span><span id="progPct">0%</span></div>
 </header>
-<div class="tabs">
+<div class="tabs" id="tabsBar">
   <div class="tab active" data-view="inspecao">✅ Inspeção</div>
-  <div class="tab" data-view="resumo">📊 Resumo</div>
-  <div class="tab" data-view="relatorio">📄 Relatório</div>
-  <div class="tab" data-view="compras">🧾 Compras</div>
+  <div class="tab tab-admin" data-view="resumo">📊 Resumo</div>
+  <div class="tab tab-admin" data-view="relatorio">📄 Relatório</div>
+  <div class="tab tab-admin" data-view="compras">🧾 Compras</div>
 </div>
 <div class="container">
   <!-- ========== INSPEÇÃO (DADOS + CHECKLIST UNIFICADOS) ========== -->
@@ -388,6 +419,27 @@
       </div>
     </div>
   </section>
+</div>
+<!-- ===== MODAL DE LOGIN DO ADMINISTRADOR (autenticação no Apps Script) ===== -->
+<div class="modal-bg" id="adminModal">
+  <div class="modal">
+    <h3>🔐 Acesso do Administrador</h3>
+    <p>Entre com <b>usuário e senha</b> para liberar as abas <b>Resumo</b>, <b>Relatório</b> e <b>Compras</b>. A equipe de campo utiliza apenas a aba <b>Inspeção</b>.</p>
+    <label style="margin-top:0;">Usuário</label>
+    <input type="text" id="adminUser" autocomplete="username" placeholder="Ex.: admin"
+           style="text-align:left;font-size:16px;letter-spacing:normal;"
+           onkeydown="if(event.key==='Enter'){document.getElementById('adminPass').focus();}">
+    <label>Senha</label>
+    <input type="password" id="adminPass" autocomplete="current-password" placeholder="••••••••"
+           style="text-align:left;font-size:16px;letter-spacing:normal;"
+           onkeydown="if(event.key==='Enter')confirmAdmin()">
+    <div class="m-err" id="adminErr"></div>
+    <div class="modal-actions">
+      <button class="btn m-cancel" onclick="closeAdminModal()">Cancelar</button>
+      <button class="btn m-ok" id="adminLoginBtn" onclick="confirmAdmin()">Entrar</button>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin:12px 0 0;text-align:center;">🔒 Autenticação validada no servidor (Google Apps Script).</p>
+  </div>
 </div>
 <div class="toast" id="toast"></div>
 <script>
@@ -1049,6 +1101,9 @@ async function cloudGetFallback_(url, action, payload){
     if(payload.inspecao!=null) p.set("inspecao", JSON.stringify(payload.inspecao));
     if(payload.inspId!=null) p.set("inspId", String(payload.inspId));
     if(payload.key!=null)  p.set("key",  String(payload.key));
+    if(payload.user!=null) p.set("user", String(payload.user));
+    if(payload.pass!=null) p.set("pass", String(payload.pass));
+    if(payload.token!=null) p.set("token", String(payload.token));
   }
   const sep=url.indexOf("?")>=0?"&":"?";
   const res=await fetch(url+sep+p.toString(), { method:"GET", redirect:"follow", cache:"no-store", credentials:"omit" });
@@ -1468,7 +1523,7 @@ async function finalizarInspecao(){
 
   // Caso 1: sem nuvem configurada -> NÃO limpa (evita ficar só no local).
   if(!cfg.url){
-    document.querySelector('.tab[data-view="relatorio"]').click();
+    gotoReportIfAdmin();
     alert("⚠ A conexão com o Google Sheets não está configurada.\n\n"+
           "Para ficar 100% online, a inspeção precisa ser gravada na planilha. "+
           "Os dados foram MANTIDOS no aparelho para não se perderem. "+
@@ -1484,7 +1539,7 @@ async function finalizarInspecao(){
   // (1) Inspeção completa -> aba "Inspecoes"
   const ri=await saveInspectionOnline(true);
   if(!(ri && ri.ok && ri.verified)){
-    document.querySelector('.tab[data-view="relatorio"]').click();
+    gotoReportIfAdmin();
     alert("⚠ A gravação da INSPEÇÃO no Google Sheets NÃO foi confirmada"+
           (ri && ri.error ? ("\n\nDetalhe: "+ri.error) : "")+
           "\n\nOs dados foram MANTIDOS no aparelho para reenvio. "+
@@ -1498,7 +1553,7 @@ async function finalizarInspecao(){
   if(mats.length>0){
     const rp=await sendInspectionToCloud(true);
     if(!(rp && rp.ok && rp.verified)){
-      document.querySelector('.tab[data-view="relatorio"]').click();
+      gotoReportIfAdmin();
       alert("⚠ A inspeção foi gravada, mas os PEDIDOS de material NÃO foram confirmados"+
             (rp && rp.error ? ("\n\nDetalhe: "+rp.error) : "")+
             "\n\nOs dados foram MANTIDOS no aparelho para reenvio. Finalize novamente.");
@@ -1509,7 +1564,7 @@ async function finalizarInspecao(){
   }
 
   // Tudo confirmado no Google Sheets -> mostra relatório e oferece limpar
-  document.querySelector('.tab[data-view="relatorio"]').click();
+  gotoReportIfAdmin();
   const resumo="✅ Inspeção gravada no Google Sheets"+
                (nPedidos>0 ? (" com "+nPedidos+" pedido(s) de material.") : ".");
   const limpar=confirm(resumo+"\n\nDeseja limpar os campos e iniciar uma NOVA inspeção?\n"+
@@ -1552,19 +1607,153 @@ function novaInspecao(confirmar){
   save(); // grava o novo estado limpo
 }
 /* ============================================================
+   >>> CONTROLE DE ACESSO POR PERFIL (AUTENTICAÇÃO NO SERVIDOR) <<<
+   - Equipe de campo (Zeladoria): vê SOMENTE a aba "Inspeção".
+   - Administrador: faz LOGIN (usuário/senha) validado pelo Apps Script,
+     que devolve um TOKEN de sessão. Só então libera Resumo/Relatório/Compras.
+   - O token é revalidado no servidor a cada abertura do app.
+   As credenciais NÃO ficam no HTML — ficam nas Script Properties do .gs.
+   ============================================================ */
+const ADMIN_TOKEN_KEY = "insp_zeladoria_admin_token_v1";
+
+function getAdminToken(){ try{ return localStorage.getItem(ADMIN_TOKEN_KEY)||""; }catch(e){ return ""; } }
+function setAdminToken(t){ try{ t?localStorage.setItem(ADMIN_TOKEN_KEY,t):localStorage.removeItem(ADMIN_TOKEN_KEY); }catch(e){} }
+
+function isAdmin(){ return document.body.classList.contains("is-admin"); }
+/* Navega ao Relatório apenas se for admin (equipe de campo permanece na Inspeção). */
+function gotoReportIfAdmin(){
+  if(isAdmin()){
+    const t=document.querySelector('.tab[data-view="relatorio"]');
+    if(t) t.click();
+  }
+}
+
+function applyAdminUI(on){
+  document.body.classList.toggle("is-admin", !!on);
+  const btn=document.getElementById("adminBtn");
+  if(btn){
+    btn.textContent = on ? "🔓" : "🔒";
+    btn.title = on ? "Administrador conectado — toque para sair" : "Acesso do administrador";
+  }
+  // Se saiu do modo admin estando numa aba restrita, volta para Inspeção
+  if(!on){
+    const ativa=document.querySelector(".view.active");
+    if(ativa && ativa.id!=="view-inspecao"){
+      const t=document.querySelector('.tab[data-view="inspecao"]');
+      if(t) t.click();
+    }
+  }
+}
+
+/* Botão do cabeçalho: se já é admin, oferece logout; senão abre o login. */
+function toggleAdmin(){
+  if(isAdmin()){
+    if(confirm("Sair do modo administrador?\n(As abas Resumo/Relatório/Compras ficarão ocultas para a equipe de campo.)")){
+      logoutAdmin();
+    }
+  } else {
+    openAdminModal();
+  }
+}
+function openAdminModal(){
+  const m=document.getElementById("adminModal");
+  const err=document.getElementById("adminErr");
+  if(err) err.textContent="";
+  const u=document.getElementById("adminUser"); const p=document.getElementById("adminPass");
+  if(p) p.value="";
+  if(m) m.classList.add("show");
+  setTimeout(()=>{ if(u && !u.value) u.focus(); else if(p) p.focus(); }, 100);
+}
+function closeAdminModal(){
+  const m=document.getElementById("adminModal");
+  if(m) m.classList.remove("show");
+}
+
+/* LOGIN validado no Apps Script (ação "login" -> retorna token) */
+async function confirmAdmin(){
+  const user=(document.getElementById("adminUser")||{}).value||"";
+  const pass=(document.getElementById("adminPass")||{}).value||"";
+  const err=document.getElementById("adminErr");
+  const btn=document.getElementById("adminLoginBtn");
+  const cfg=cloudCfg();
+  if(!cfg.url){ if(err) err.textContent="Sem conexão com o servidor de autenticação."; return; }
+  if(!user || !pass){ if(err) err.textContent="Informe usuário e senha."; return; }
+  if(err) err.textContent="";
+  if(btn){ btn.disabled=true; btn.textContent="Entrando..."; }
+  try{
+    const r=await cloudRequest("login",{user:user, pass:pass});
+    if(r && r.ok && r.token){
+      setAdminToken(r.token);
+      applyAdminUI(true);
+      closeAdminModal();
+      toast("Administrador conectado 🔓 ("+(r.user||"admin")+")");
+    } else {
+      if(err) err.textContent=(r&&r.error)?r.error:"Usuário ou senha inválidos.";
+    }
+  }catch(e){
+    if(err) err.textContent="Falha ao autenticar: "+e.message;
+  }finally{
+    if(btn){ btn.disabled=false; btn.textContent="Entrar"; }
+    const p=document.getElementById("adminPass"); if(p) p.value="";
+  }
+}
+
+/* LOGOUT: invalida o token no servidor e limpa localmente */
+async function logoutAdmin(){
+  const token=getAdminToken();
+  applyAdminUI(false);
+  setAdminToken("");
+  toast("Modo administrador encerrado 🔒");
+  const cfg=cloudCfg();
+  if(cfg.url && token){ try{ await cloudRequest("logout",{token:token}); }catch(e){} }
+}
+
+/* Inicialização: revalida o token salvo junto ao servidor (ação "auth"). */
+async function initAccessControl(){
+  applyAdminUI(false); // começa como equipe de campo por padrão
+  const token=getAdminToken();
+  const cfg=cloudCfg();
+  if(!token || !cfg.url) return;
+  try{
+    const r=await cloudRequest("auth",{token:token});
+    if(r && r.ok && r.valid){ applyAdminUI(true); }
+    else { setAdminToken(""); } // token expirado/inválido -> volta a ser campo
+  }catch(e){ /* offline: mantém como campo até reconectar */ }
+}
+/* ============================================================
    NAVEGAÇÃO
    ============================================================ */
 document.querySelectorAll(".tab").forEach(tab=>{
   tab.onclick=()=>{
+    // Bloqueio de acesso: abas restritas só para administrador
+    if(tab.classList.contains("tab-admin") && !isAdmin()){
+      openAdminModal();
+      return;
+    }
+    // 1) TROCA A ABA PRIMEIRO (nunca deixa a aba "morta" mesmo se o render falhar)
     document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
     document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
     tab.classList.add("active");
     const v=tab.dataset.view;
-    document.getElementById("view-"+v).classList.add("active");
-    if(v==="resumo") renderResumo();
-    if(v==="relatorio") renderReport();
-    if(v==="compras"){ refreshCompras(); }
+    const viewEl=document.getElementById("view-"+v);
+    if(viewEl) viewEl.classList.add("active");
     window.scrollTo(0,0);
+    // 2) RENDERIZA O CONTEÚDO EM SEGUIDA, PROTEGIDO POR TRY/CATCH
+    try{
+      if(v==="resumo") renderResumo();
+      else if(v==="relatorio") renderReport();
+      else if(v==="compras") refreshCompras();
+    }catch(err){
+      console.error("Erro ao montar a aba '"+v+"':", err);
+      const alvo = v==="relatorio" ? document.getElementById("reportArea")
+                 : v==="resumo"    ? document.getElementById("matSummary")
+                 : null;
+      if(alvo){
+        alvo.innerHTML='<p class="empty" style="color:var(--nc)">Não foi possível montar esta aba.<br>'+
+          esc(err&&err.message?err.message:String(err))+'<br><br>Toque em outra aba e volte, ou recarregue a página.</p>';
+      }
+      toast("Erro ao abrir "+v+" — veja o console");
+    }
   };
 });
 // autosave nos campos de dados
@@ -1575,11 +1764,12 @@ document.querySelectorAll(".tab").forEach(tab=>{
 /* ============================================================
    INIT
    ============================================================ */
-console.log("%c[Inspeção Zeladoria] versão v29 carregada (inspeção 100% online)","color:#007E7A;font-weight:bold;");
+console.log("%c[Inspeção Zeladoria] versão v32 carregada (autenticação segura no Apps Script)","color:#007E7A;font-weight:bold;");
 load();
 renderChecklist();
 renderFrees();
 updateProgress();
+initAccessControl();
 </script>
 </body>
 </html>
