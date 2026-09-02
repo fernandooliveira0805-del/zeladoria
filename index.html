@@ -296,7 +296,8 @@
     <!-- Finalizar Inspeção: alimenta Resumo, Relatório e Compras -->
     <div class="finalize-wrap">
       <button class="btn-finalize" onclick="finalizarInspecao()">✅ Finalizar Inspeção</button>
-      <p class="hint" style="text-align:center;">Ao finalizar, o <b>Resumo</b> e o <b>Relatório</b> são gerados e as solicitações de material são enviadas para a aba <b>Compras</b>.</p>
+      <button class="btn btn-ghost" style="width:100%;margin-top:10px;" onclick="novaInspecao()">🧹 Nova Inspeção (limpar campos)</button>
+      <p class="hint" style="text-align:center;">Ao finalizar, o <b>Resumo</b> e o <b>Relatório</b> são gerados, as solicitações vão para a aba <b>Compras</b> e os campos são <b>limpos para uma nova inspeção</b>.</p>
     </div>
   </section>
   <!-- ========== RESUMO ========== -->
@@ -1310,11 +1311,11 @@ function currentInspId(){
 }
 async function sendInspectionToCloud(showMsg){
   const cfg=cloudCfg();
-  if(!cfg.url){ toast("Fonte de dados (Google Sheets) não configurada no código."); return false; }
+  if(!cfg.url){ toast("Fonte de dados (Google Sheets) não configurada no código."); return {ok:false, sent:0, reason:"sem_url"}; }
   collectDados(); const d=STATE.dados||{};
   const inspId=currentInspId();
   const mats=collectMats();
-  if(mats.length===0){ if(showMsg) toast("Nenhum material solicitado nesta inspeção."); return true; }
+  if(mats.length===0){ if(showMsg) toast("Nenhum material solicitado nesta inspeção."); return {ok:true, sent:0, reason:"sem_materiais"}; }
   setOnline("loading","Enviando pedidos à planilha...");
   try{
     await cloudList();
@@ -1339,14 +1340,26 @@ async function sendInspectionToCloud(showMsg){
         historico:[{status:"Pendente",ts:Date.now()}]
       };
     });
+    // 1) grava na planilha
     await cloudRequest("upsert",{rows});
-    setOnline("on","Enviado ✔ ("+rows.length+" pedido(s) na planilha)");
-    if(showMsg) toast("Pedidos enviados à nuvem ✔ ("+rows.length+")");
-    return true;
+    // 2) >>> CONFIRMAÇÃO (read-back): relê a planilha e confere se as chaves existem <<<
+    setOnline("loading","Confirmando gravação no Google Sheets...");
+    await cloudList();
+    const enviadas=rows.map(r=>r.key);
+    const confirmadas=enviadas.filter(k=>PO_CACHE.some(p=>p.key===k));
+    if(confirmadas.length===enviadas.length){
+      setOnline("on","Confirmado ✔ ("+confirmadas.length+" pedido(s) gravado(s) no Google Sheets)");
+      if(showMsg) toast("✔ Confirmado no Google Sheets ("+confirmadas.length+" pedido(s))");
+      return {ok:true, sent:confirmadas.length, verified:true};
+    }
+    // gravou parcialmente -> não confirma
+    setOnline("off","Gravação não confirmada ("+confirmadas.length+"/"+enviadas.length+")");
+    if(showMsg) toast("⚠ Gravação não confirmada. Tente reenviar.");
+    return {ok:false, sent:confirmadas.length, verified:false, reason:"parcial"};
   }catch(e){
     setOnline("off","Erro ao enviar: "+e.message);
     if(showMsg) toast("Erro ao enviar: "+e.message);
-    return false;
+    return {ok:false, sent:0, verified:false, reason:"erro", error:e.message};
   }
 }
 /* >>> FIM MÓDULO COMPRAS ONLINE <<< */
@@ -1361,22 +1374,101 @@ async function finalizarInspecao(){
   const c=counts();
   if(c.done===0){ toast("Preencha ao menos um item da inspeção antes de finalizar."); return; }
   save();
-  // Alimenta as abas seguintes
+  // Alimenta as abas seguintes (Resumo + Relatório)
   renderResumo();
   renderReport();
-  // Envia solicitações de material para a nuvem (se houver e se configurada)
+
   const mats=collectMats();
   const cfg=cloudCfg();
+
+  /* ---------------------------------------------------------------
+     REGRA ANTI-"SÓ LOCAL":
+     - Se há materiais, a inspeção SÓ é considerada finalizada (e os
+       campos SÓ são limpos) após CONFIRMAÇÃO de gravação no Google
+       Sheets (read-back). Se não confirmar, os dados permanecem no
+       aparelho para reenvio — nada é perdido.
+     - Se NÃO há materiais, não há o que enviar: finaliza e limpa.
+     --------------------------------------------------------------- */
+
+  // Caso 1: há materiais, mas a nuvem não está configurada -> NÃO limpa.
+  if(mats.length>0 && !cfg.url){
+    document.querySelector('.tab[data-view="relatorio"]').click();
+    alert("⚠ Esta inspeção possui pedidos de material, mas a conexão com o Google Sheets não está configurada.\n\n"+
+          "Os dados foram MANTIDOS no aparelho para não se perderem. "+
+          "Configure a planilha (ou verifique a internet) e finalize novamente para enviar.");
+    toast("Pedidos mantidos no aparelho (sem nuvem)");
+    return;
+  }
+
+  // Caso 2: há materiais e há nuvem -> envia e EXIGE confirmação de gravação.
   if(mats.length>0 && cfg.url){
-    toast("Finalizando e sincronizando pedidos...");
-    await sendInspectionToCloud(true);
-  } else if(mats.length>0 && !cfg.url){
-    toast("Inspeção finalizada ✔ (pedidos aguardando conexão)");
+    toast("Enviando e confirmando no Google Sheets...");
+    const r=await sendInspectionToCloud(true);
+    document.querySelector('.tab[data-view="relatorio"]').click();
+
+    if(!(r && r.ok && r.verified)){
+      // Não confirmado -> NÃO limpa. Mantém tudo no aparelho.
+      alert("⚠ A gravação no Google Sheets NÃO foi confirmada"+
+            (r && r.error ? ("\n\nDetalhe: "+r.error) : "")+
+            "\n\nOs dados desta inspeção foram MANTIDOS no aparelho para reenvio. "+
+            "Verifique a conexão/implantação e toque em Finalizar novamente.");
+      toast("Não confirmado — dados mantidos para reenvio");
+      return;
+    }
+
+    // Confirmado no Sheets -> pergunta antes de limpar
+    const nPedidos=r.sent||mats.length;
+    const limpar=confirm("✅ "+nPedidos+" pedido(s) CONFIRMADO(S) no Google Sheets.\n\n"+
+                         "Deseja limpar os campos e iniciar uma NOVA inspeção?\n"+
+                         "(Os pedidos já gravados na planilha não serão afetados.)");
+    if(limpar){
+      novaInspecao(false);
+      toast("Enviado ✔ e pronto para nova inspeção 🧹");
+    } else {
+      toast("Enviado ✔ — campos mantidos (limpe quando quiser)");
+    }
+    return;
+  }
+
+  // Caso 3: sem materiais -> finaliza e limpa (com confirmação).
+  document.querySelector('.tab[data-view="relatorio"]').click();
+  const limpar=confirm("Inspeção finalizada (sem pedidos de material).\n\nLimpar os campos e iniciar uma NOVA inspeção?");
+  if(limpar){
+    novaInspecao(false);
+    toast("Pronto para uma nova inspeção 🧹");
   } else {
     toast("Inspeção finalizada ✔");
   }
-  // Leva o usuário ao Relatório consolidado
-  document.querySelector('.tab[data-view="relatorio"]').click();
+}
+/* ============================================================
+   >>> NOVA INSPEÇÃO / LIMPAR CAMPOS <<<
+   Zera o formulário, o checklist, as fotos e as observações
+   livres, gerando um novo ID de inspeção. NÃO afeta os pedidos
+   já enviados à planilha (esses vivem na nuvem).
+   ============================================================ */
+function novaInspecao(confirmar){
+  if(confirmar!==false){
+    if(!confirm("Limpar todos os campos e iniciar uma NOVA inspeção?\n(Os pedidos já enviados à planilha não são afetados.)")) return;
+  }
+  // Zera o estado em memória, com novo ID de inspeção
+  STATE = { dados:{}, itens:{}, frees:[], meta:{ inspId:"INS"+Date.now() } };
+  // Remove o rascunho salvo no aparelho
+  try{ localStorage.removeItem(KEY); }catch(e){}
+  // Limpa os campos do formulário
+  ["f_local","f_setor","f_inspetor","f_matricula","f_om","f_email","f_obs","f_zelador","f_contato"].forEach(id=>setVal(id,""));
+  setVal("f_data", new Date().toISOString().slice(0,10));
+  // Re-renderiza checklist e observações livres zerados
+  renderChecklist();
+  renderFrees();
+  updateProgress();
+  // Limpa a área de resumo/relatório para não exibir dados antigos
+  const ra=document.getElementById("reportArea");
+  if(ra) ra.innerHTML=`<p class="empty">O relatório será montado com base na inspeção preenchida.<br>Toque em "Finalizar Inspeção" para gerar.</p>`;
+  const ms=document.getElementById("matSummary");
+  if(ms) ms.innerHTML=`<p class="empty">Nenhum material solicitado até o momento.</p>`;
+  // Volta para a aba de Inspeção
+  document.querySelector('.tab[data-view="inspecao"]').click();
+  save(); // grava o novo estado limpo
 }
 /* ============================================================
    NAVEGAÇÃO
