@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#007E7A">
-<title>Inspeção Zeladoria - Vale</title>
+<title>Inspeção Zeladoria — Vale</title>
 <meta name="application-name" content="Inspeção Zeladoria">
 <style>
   :root{
@@ -175,6 +175,46 @@
   .sb-share{background:#25a366;color:#fff;}
   .sb-save{background:#eef2f3;color:var(--txt);}
   .share-btn:active{transform:scale(.98);}
+  /* ========== COMPRAS / COMPRADOR ========== */
+  .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+  .filters select,.filters input{flex:1;min-width:130px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fbfcfc;font-size:14px;}
+  .subtabs{display:flex;gap:8px;margin-bottom:14px;}
+  .subtab{flex:1;padding:11px 6px;border-radius:10px;background:#eef2f3;font-weight:700;font-size:13px;text-align:center;cursor:pointer;color:var(--muted);user-select:none;}
+  .subtab.active{background:var(--vale-teal);color:#fff;}
+  .subview{display:none;}
+  .subview.active{display:block;}
+  .insp-group{margin-bottom:20px;}
+  .insp-group>.ig-head{background:linear-gradient(135deg,var(--vale-teal),var(--vale-teal-d));color:#fff;padding:10px 14px;border-radius:12px 12px 0 0;font-weight:700;font-size:13.5px;}
+  .insp-group>.ig-sub{background:#e9f3f2;color:var(--vale-teal-d);font-size:12px;padding:7px 14px;border-left:1px solid var(--line);border-right:1px solid var(--line);}
+  .ig-body{border:1px solid var(--line);border-top:none;border-radius:0 0 12px 12px;padding:12px;background:#fbfdfd;}
+  .po-card{border:1px solid var(--line);border-left:5px solid var(--na);border-radius:10px;padding:12px;margin-bottom:12px;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.05);}
+  .po-card.s-disp{border-left-color:var(--ok);}
+  .po-card.s-comp{border-left-color:#1a73e8;}
+  .po-card.s-cot{border-left-color:#f0a500;}
+  .po-card.s-ret{border-left-color:var(--na);opacity:.85;}
+  .po-top{display:flex;justify-content:space-between;gap:8px;align-items:flex-start;}
+  .po-title{font-weight:700;font-size:14px;color:var(--txt);}
+  .po-meta{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.55;}
+  .po-meta b{color:var(--vale-teal-d);}
+  .status-pill{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11px;font-weight:700;color:#fff;white-space:nowrap;}
+  .stt-pd{background:#9aa0a6;} .stt-cot{background:#f0a500;} .stt-comp{background:#1a73e8;}
+  .stt-disp{background:#1e8e3e;} .stt-ret{background:#5f6368;}
+  .po-ctrls{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+  @media(max-width:520px){.po-ctrls{grid-template-columns:1fr;}}
+  .po-ctrls label{margin:0 0 3px;}
+  .po-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;}
+  .mini-btn{padding:9px 12px;border:none;border-radius:9px;font-size:12.5px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:5px;}
+  .mini-btn:disabled{opacity:.45;cursor:not-allowed;}
+  .mb-wa{background:#25a366;color:#fff;} .mb-sms{background:#1a73e8;color:#fff;}
+  .mb-del{background:#fdecea;color:#c5221f;} .mb-copy{background:#eef2f3;color:var(--txt);}
+  .notif-badge{font-size:11px;color:var(--ok);font-weight:700;margin-top:6px;}
+  .ready-flag{background:#e6f4ea;border:1px solid #b7e0c2;border-radius:8px;padding:8px 10px;margin-top:10px;font-size:12.5px;color:#1e6b31;font-weight:600;}
+  .hist-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;}
+  .hist-table th{background:var(--vale-teal);color:#fff;padding:7px;text-align:left;font-size:12px;}
+  .hist-table td{padding:7px;border-bottom:1px solid var(--line);}
+  .hist-table tr:nth-child(even) td{background:#f7fafa;}
+  .info-note{background:#fff8e1;border:1px solid #f0e2a8;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5c00;margin-bottom:12px;line-height:1.5;}
+
 </style>
 </head>
 <body>
@@ -204,6 +244,7 @@
   <div class="tab" data-view="inspecao">✅ Inspeção</div>
   <div class="tab" data-view="resumo">📊 Resumo</div>
   <div class="tab" data-view="relatorio">📄 Relatório</div>
+  <div class="tab" data-view="compras">🧾 Compras</div>
 </div>
 
 <div class="container">
@@ -223,6 +264,10 @@
       <div class="grid2">
         <div><label>Data da inspeção</label><input type="date" id="f_data"></div>
         <div><label>Nº da inspeção / OM</label><input type="text" id="f_om" placeholder="Opcional"></div>
+      </div>
+      <div class="grid2">
+        <div><label>Zelador solicitante</label><input type="text" id="f_zelador" placeholder="Nome de quem solicita a compra"></div>
+        <div><label>Contato do zelador (WhatsApp/celular)</label><input type="tel" id="f_contato" placeholder="Ex.: (27) 99999-9999"></div>
       </div>
       <label>E-mail(s) de destino do relatório</label>
       <input type="email" id="f_email" placeholder="fiscal@vale.com; suprimentos@vale.com">
@@ -268,6 +313,7 @@
     <div class="card">
       <h2>🛒 Solicitações de Compra</h2>
       <div id="matSummary"><p class="empty">Nenhum material solicitado até o momento.</p></div>
+      <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="syncCurrentInspectionToPO(true)">📤 Enviar pedidos ao Comprador</button>
     </div>
   </section>
 
@@ -277,6 +323,70 @@
       <p class="empty">O relatório será montado com base na inspeção preenchida.<br>Toque em "Gerar" para visualizar.</p>
     </div>
   </section>
+
+  <!-- ========== COMPRAS (COMPRADOR) ========== -->
+  <section class="view" id="view-compras">
+    <div class="subtabs">
+      <div class="subtab active" data-sub="pedidos" onclick="switchSub('pedidos')">📦 Pedidos</div>
+      <div class="subtab" data-sub="historico" onclick="switchSub('historico')">📚 Histórico</div>
+    </div>
+
+    <!-- ---- PEDIDOS ---- -->
+    <div class="subview active" id="sub-pedidos">
+      <div class="info-note">
+        💡 <b>Painel do Comprador.</b> Aqui aparecem todos os materiais solicitados nas inspeções (deste aparelho). Atualize o <b>status</b>, informe o <b>local de retirada</b> e, quando o material estiver disponível, toque em <b>WhatsApp</b> ou <b>SMS</b> para avisar o zelador solicitante.
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi k-tot"><div class="n" id="c_tot">0</div><div class="l">Pedidos</div></div>
+        <div class="kpi k-nc"><div class="n" id="c_pd">0</div><div class="l">Pendentes</div></div>
+        <div class="kpi" style="--x:0"><div class="n" id="c_cp" style="color:#1a73e8">0</div><div class="l">Comprados</div></div>
+        <div class="kpi k-ok"><div class="n" id="c_dp">0</div><div class="l">Disponíveis</div></div>
+      </div>
+
+      <div class="filters">
+        <select id="cf_status" onchange="renderCompras()">
+          <option value="Todos">Todos os status</option>
+          <option>Pendente</option>
+          <option>Em cotação</option>
+          <option>Comprado</option>
+          <option>Disponível para retirada</option>
+          <option>Retirado</option>
+        </select>
+        <input type="text" id="cf_local" placeholder="Filtrar por local..." oninput="renderCompras()">
+        <input type="text" id="cf_text" placeholder="Buscar material / zelador..." oninput="renderCompras()">
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn btn-ghost" style="flex:1;" onclick="syncCurrentInspectionToPO(true)">🔄 Sincronizar inspeção atual</button>
+        <button class="btn btn-yellow" style="flex:1;" onclick="exportComprasCSV()">⬇️ Exportar CSV</button>
+      </div>
+
+      <div id="comprasList"></div>
+
+      <button class="btn btn-ghost" style="width:100%;margin-top:6px;" onclick="clearRetirados()">🧹 Limpar pedidos já retirados</button>
+    </div>
+
+    <!-- ---- HISTÓRICO ---- -->
+    <div class="subview" id="sub-historico">
+      <div class="info-note">📚 Histórico consolidado de compras. Agrupado por <b>material</b> e por <b>local</b>, considerando todos os pedidos registrados.</div>
+      <div class="filters">
+        <select id="hf_status" onchange="renderHistorico()">
+          <option value="Efetivados">Somente efetivados (Comprado/Disponível/Retirado)</option>
+          <option value="Todos">Todos os pedidos</option>
+        </select>
+      </div>
+      <div class="card">
+        <h2>🧱 Por Material</h2>
+        <div id="histMaterial"></div>
+      </div>
+      <div class="card">
+        <h2>📍 Por Local</h2>
+        <div id="histLocal"></div>
+      </div>
+    </div>
+  </section>
+
 
 </div>
 
@@ -301,7 +411,7 @@ const CHECKLIST = [
       {n:"1.3", t:"Portas (madeira, vidro, corta-fogo)", d:"Fixação, maçanetas, molas, acabamentos, limpeza"},
       {n:"1.4", t:"Janelas e Vidros", d:"Fixação, vidro quebrado, limpeza"},
       {n:"1.5", t:"Persianas", d:"Fixação, peças danificadas"},
-      {n:"1.6", t:"Insufilme", d:"Rasgado, descolando"},
+      {n:"1.6", t:"Insulfilm", d:"Rasgado, descolando"},
       {n:"1.7", t:"Mesas / Armários", d:"Danificadas, peças soltas"},
       {n:"1.8", t:"Lixeiras", d:"Danificadas, limpeza, recolhimento"},
       {n:"1.9", t:"Dispenser de álcool", d:"Danificadas, limpeza, reabastecimento"},
@@ -715,7 +825,7 @@ function renderReport(){
       <div style="border-top:1px solid #999;padding-top:6px;width:45%;">Inspetor(a)<br><b>${esc(d.inspetor)||""}</b></div>
       <div style="border-top:1px solid #999;padding-top:6px;width:45%;">Responsável / Fiscal</div>
     </div>
-    <p style="text-align:center;font-size:10px;color:var(--muted);margin-top:14px;">Gerado em ${new Date().toLocaleString('pt-BR')} • Ferramenta de Inspeção de Zeladoria</p>
+    <p style="text-align:center;font-size:10px;color:var(--muted);margin-top:14px;">Gerado em ${new Date().toLocaleString('pt-BR')} • Ferramenta de Inspeção de Zeladoria — Vale S/A</p>
   `;
 
   // >>> NOVO: painel de envio no final do relatório <<<
@@ -783,7 +893,7 @@ function buildEmailText(){
   else mats.forEach(m=>L.push("• "+m.n+" - "+(m.desc||"—")+" | "+(m.qtd||"?")+" "+m.un+(m.cod?" | Cód: "+m.cod:"")));
   L.push("");
   L.push("Obs.: As fotos e o layout completo estão no relatório em PDF (gerar pelo botão 'Gerar / Salvar PDF').");
-  L.push("Gerado em "+new Date().toLocaleString('pt-BR')+" — App de Inspeção de Zeladoria");
+  L.push("Gerado em "+new Date().toLocaleString('pt-BR')+" — App de Inspeção de Zeladoria / Vale S/A");
   return L.join("\n");
 }
 function sendEmail(){
@@ -858,7 +968,8 @@ function collectDados(){
   STATE.dados = {
     local:val("f_local"), setor:val("f_setor"), inspetor:val("f_inspetor"),
     matricula:val("f_matricula"), data:val("f_data"), om:val("f_om"),
-    email:val("f_email"), obs:val("f_obs")
+    email:val("f_email"), obs:val("f_obs"),
+    zelador:val("f_zelador"), contato:val("f_contato")
   };
 }
 function save(){
@@ -882,6 +993,7 @@ function load(){
   const d=STATE.dados||{};
   setVal("f_local",d.local); setVal("f_setor",d.setor); setVal("f_inspetor",d.inspetor);
   setVal("f_matricula",d.matricula); setVal("f_om",d.om); setVal("f_email",d.email); setVal("f_obs",d.obs);
+  setVal("f_zelador",d.zelador); setVal("f_contato",d.contato);
   setVal("f_data", d.data || new Date().toISOString().slice(0,10));
 }
 
@@ -901,6 +1013,322 @@ function toast(msg){
 }
 
 /* ============================================================
+   >>> MÓDULO COMPRAS / COMPRADOR / NOTIFICAÇÕES <<<
+   ============================================================ */
+const PO_KEY = "insp_zeladoria_compras_v1";
+const PO_STATUS = ["Pendente","Em cotação","Comprado","Disponível para retirada","Retirado"];
+
+function loadPO(){
+  try{ const raw=localStorage.getItem(PO_KEY); return raw? JSON.parse(raw):[]; }
+  catch(e){ return []; }
+}
+function savePO(list){
+  try{ localStorage.setItem(PO_KEY, JSON.stringify(list)); return true; }
+  catch(e){ toast("Memória cheia ao salvar pedidos."); return false; }
+}
+function currentInspId(){
+  if(!STATE.meta) STATE.meta={};
+  if(!STATE.meta.inspId) STATE.meta.inspId = "INS"+Date.now();
+  return STATE.meta.inspId;
+}
+
+/* Envia/atualiza os materiais da inspeção atual para o painel do comprador */
+function syncCurrentInspectionToPO(showMsg){
+  collectDados();
+  const d = STATE.dados || {};
+  const inspId = currentInspId();
+  const mats = collectMats();
+  let store = loadPO();
+  let novos=0, atualizados=0;
+  mats.forEach(m=>{
+    const key = inspId+"::"+m.n;
+    let po = store.find(p=>p.key===key);
+    if(!po){
+      po = {
+        key, id:"PO"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+        inspId, createdAt:Date.now(),
+        item:m.n, titulo:m.titulo||"", desc:m.desc||"", cod:m.cod||"",
+        qtd:m.qtd||"", un:m.un||"un",
+        local:d.local||"", setor:d.setor||"", om:d.om||"",
+        zelador:d.zelador||d.inspetor||"", contato:d.contato||"",
+        status:"Pendente", localRetirada:d.local||"",
+        historico:[{status:"Pendente", ts:Date.now()}], notifiedAt:null
+      };
+      store.push(po); novos++;
+    } else {
+      // preserva status/local de retirada/notificação do comprador
+      po.desc=m.desc||po.desc; po.cod=m.cod||po.cod; po.qtd=m.qtd||po.qtd;
+      po.un=m.un||po.un; po.titulo=m.titulo||po.titulo;
+      po.local=d.local||po.local; po.setor=d.setor||po.setor; po.om=d.om||po.om;
+      po.zelador=(d.zelador||d.inspetor||po.zelador); po.contato=(d.contato||po.contato);
+      atualizados++;
+    }
+  });
+  savePO(store);
+  if(showMsg) toast("Pedidos enviados ✔  ("+novos+" novo(s), "+atualizados+" atualizado(s))");
+  renderCompras();
+}
+
+function poByKey(k){ return loadPO().find(p=>p.key===k); }
+
+function setPOStatus(encKey,val){
+  const k=decodeURIComponent(encKey);
+  let store=loadPO(); const po=store.find(p=>p.key===k);
+  if(!po) return;
+  po.status=val;
+  po.historico=po.historico||[];
+  po.historico.push({status:val, ts:Date.now()});
+  savePO(store); renderCompras();
+}
+function setPOPickup(encKey,val){
+  const k=decodeURIComponent(encKey);
+  let store=loadPO(); const po=store.find(p=>p.key===k);
+  if(!po) return;
+  po.localRetirada=val; savePO(store); // sem re-render para manter o foco
+}
+function markReadyAndNotify(encKey,ch){
+  const k=decodeURIComponent(encKey);
+  let store=loadPO(); const po=store.find(p=>p.key===k);
+  if(!po) return;
+  if(po.status!=="Disponível para retirada"){
+    po.status="Disponível para retirada";
+    po.historico=po.historico||[]; po.historico.push({status:po.status, ts:Date.now()});
+    savePO(store);
+  }
+  notifyZelador(encKey,ch);
+}
+
+function normPhone(s){
+  let d=(s||"").replace(/\D/g,"");
+  if(!d) return "";
+  if(d.length<=11) d="55"+d;   // assume Brasil
+  return d;
+}
+function buildNotifMsg(po){
+  const ret = po.localRetirada || po.local || "(a informar)";
+  if(po.status==="Disponível para retirada"){
+    return "Ola "+(po.zelador||"")+", aqui e da equipe de Suprimentos/Zeladoria.\n"+
+      "O material que voce solicitou na inspecao"+(po.local?(" ("+po.local+")"):"")+" ja esta DISPONIVEL para retirada.\n"+
+      "Item: "+po.item+" - "+(po.desc||po.titulo||"material")+"\n"+
+      "Quantidade: "+(po.qtd||"?")+" "+po.un+"\n"+
+      "Local de retirada: "+ret+"\n"+
+      "Por favor, retirar quando possivel. Obrigado!";
+  }
+  return "Ola "+(po.zelador||"")+", atualizacao do seu pedido (inspecao"+(po.local?(" "+po.local):"")+").\n"+
+    "Item: "+po.item+" - "+(po.desc||po.titulo||"material")+"\n"+
+    "Status atual: "+po.status+".";
+}
+function notifyZelador(encKey,ch){
+  const k=decodeURIComponent(encKey);
+  let store=loadPO(); const po=store.find(p=>p.key===k);
+  if(!po) return;
+  const phone=normPhone(po.contato);
+  const msg=buildNotifMsg(po);
+  if(!phone){
+    // sem telefone: copia a mensagem para colar manualmente
+    try{ navigator.clipboard.writeText(msg); toast("Sem contato do zelador. Mensagem copiada 📋"); }
+    catch(e){ toast("Preencha o contato do zelador na aba Dados."); }
+    return;
+  }
+  let link;
+  if(ch==="wa") link="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
+  else link="sms:+"+phone+"?body="+encodeURIComponent(msg);
+  po.notifiedAt=Date.now();
+  po.historico=po.historico||[]; po.historico.push({status:"Notificado ("+ch+")", ts:Date.now()});
+  savePO(store);
+  window.open(link,"_blank");
+  renderCompras();
+}
+function copyNotif(encKey){
+  const k=decodeURIComponent(encKey);
+  const po=poByKey(k); if(!po) return;
+  const msg=buildNotifMsg(po);
+  try{ navigator.clipboard.writeText(msg); toast("Mensagem copiada 📋"); }
+  catch(e){ toast("Não foi possível copiar."); }
+}
+function removePO(encKey){
+  const k=decodeURIComponent(encKey);
+  if(!confirm("Remover este pedido do painel do comprador?")) return;
+  let store=loadPO().filter(p=>p.key!==k);
+  savePO(store); renderCompras(); toast("Pedido removido");
+}
+function clearRetirados(){
+  const store=loadPO();
+  const rest=store.filter(p=>p.status!=="Retirado");
+  if(rest.length===store.length){ toast("Nenhum pedido retirado para limpar."); return; }
+  if(!confirm("Remover "+(store.length-rest.length)+" pedido(s) já retirado(s)?")) return;
+  savePO(rest); renderCompras(); toast("Pedidos retirados removidos");
+}
+
+function sttClass(s){
+  return {"Pendente":"stt-pd","Em cotação":"stt-cot","Comprado":"stt-comp",
+          "Disponível para retirada":"stt-disp","Retirado":"stt-ret"}[s]||"stt-pd";
+}
+function cardClass(s){
+  return {"Em cotação":"s-cot","Comprado":"s-comp","Disponível para retirada":"s-disp","Retirado":"s-ret"}[s]||"";
+}
+
+function poCardHTML(p){
+  const ek=encodeURIComponent(p.key);
+  const opts=PO_STATUS.map(s=>`<option ${p.status===s?'selected':''}>${s}</option>`).join("");
+  const hasPhone=!!normPhone(p.contato);
+  const ready=p.status==="Disponível para retirada";
+  return `<div class="po-card ${cardClass(p.status)}">
+    <div class="po-top">
+      <div>
+        <div class="po-title">${esc(p.item)} — ${esc(p.desc)||esc(p.titulo)||"(sem descrição)"}</div>
+        <div class="po-meta">
+          <b>Qtd:</b> ${esc(p.qtd)||"?"} ${esc(p.un)} ${p.cod?(' • <b>Cód:</b> '+esc(p.cod)):''}<br>
+          <b>Local:</b> ${esc(p.local)||"—"} • <b>Setor:</b> ${esc(p.setor)||"—"}<br>
+          <b>Zelador:</b> ${esc(p.zelador)||"—"} • <b>Contato:</b> ${esc(p.contato)||"—"}
+        </div>
+      </div>
+      <span class="status-pill ${sttClass(p.status)}">${esc(p.status)}</span>
+    </div>
+    <div class="po-ctrls">
+      <div>
+        <label>Status do pedido</label>
+        <select onchange="setPOStatus('${ek}',this.value)">${opts}</select>
+      </div>
+      <div>
+        <label>Local de retirada</label>
+        <input type="text" value="${escAttr(p.localRetirada)}" onchange="setPOPickup('${ek}',this.value)" placeholder="Ex.: Almoxarifado Tubarão">
+      </div>
+    </div>
+    ${ready?`<div class="ready-flag">✅ Material disponível! Avise o zelador para retirar em <b>${esc(p.localRetirada)||"(informe o local acima)"}</b>.</div>`:""}
+    <div class="po-actions">
+      <button class="mini-btn mb-wa" ${hasPhone?'':'disabled'} onclick="markReadyAndNotify('${ek}','wa')">📲 WhatsApp</button>
+      <button class="mini-btn mb-sms" ${hasPhone?'':'disabled'} onclick="markReadyAndNotify('${ek}','sms')">✉️ SMS</button>
+      <button class="mini-btn mb-copy" onclick="copyNotif('${ek}')">📋 Copiar aviso</button>
+      <button class="mini-btn mb-del" onclick="removePO('${ek}')">🗑</button>
+    </div>
+    ${p.notifiedAt?`<div class="notif-badge">✔ Zelador notificado em ${new Date(p.notifiedAt).toLocaleString('pt-BR')}</div>`:(hasPhone?"":`<div class="notif-badge" style="color:var(--nc)">⚠ Sem contato do zelador — preencha na aba Dados</div>`)}
+  </div>`;
+}
+
+function renderCompras(){
+  const store=loadPO();
+  const fStatus=(document.getElementById("cf_status")||{}).value||"Todos";
+  const fLocal=((document.getElementById("cf_local")||{}).value||"").toLowerCase();
+  const fText=((document.getElementById("cf_text")||{}).value||"").toLowerCase();
+
+  // KPIs (sobre todos, não filtrados)
+  const kc={tot:store.length,pd:0,cp:0,dp:0};
+  store.forEach(p=>{
+    if(p.status==="Pendente"||p.status==="Em cotação") kc.pd++;
+    if(p.status==="Comprado") kc.cp++;
+    if(p.status==="Disponível para retirada") kc.dp++;
+  });
+  setTxt("c_tot",kc.tot); setTxt("c_pd",kc.pd); setTxt("c_cp",kc.cp); setTxt("c_dp",kc.dp);
+
+  let list=store.filter(p=>{
+    if(fStatus!=="Todos" && p.status!==fStatus) return false;
+    if(fLocal && !(p.local||"").toLowerCase().includes(fLocal)) return false;
+    if(fText){
+      const blob=((p.desc||"")+" "+(p.item||"")+" "+(p.titulo||"")+" "+(p.zelador||"")).toLowerCase();
+      if(!blob.includes(fText)) return false;
+    }
+    return true;
+  });
+
+  const box=document.getElementById("comprasList");
+  if(!box) return;
+  if(list.length===0){
+    box.innerHTML=`<p class="empty">Nenhum pedido encontrado.<br>Preencha as solicitações de material na aba <b>Inspeção</b> e toque em <b>Sincronizar</b>.</p>`;
+    return;
+  }
+  // agrupar por inspeção
+  const groups={};
+  list.forEach(p=>{ (groups[p.inspId]=groups[p.inspId]||[]).push(p); });
+  let html="";
+  Object.keys(groups).forEach(gid=>{
+    const arr=groups[gid]; const g=arr[0];
+    const dt=new Date(g.createdAt).toLocaleDateString('pt-BR');
+    html+=`<div class="insp-group">
+      <div class="ig-head">📋 ${esc(g.local)||"Inspeção"} — ${arr.length} pedido(s)</div>
+      <div class="ig-sub">Setor: ${esc(g.setor)||"—"} • Zelador: ${esc(g.zelador)||"—"} • ${dt}</div>
+      <div class="ig-body">${arr.map(poCardHTML).join("")}</div>
+    </div>`;
+  });
+  box.innerHTML=html;
+}
+
+/* ---- HISTÓRICO ---- */
+function renderHistorico(){
+  const mode=(document.getElementById("hf_status")||{}).value||"Efetivados";
+  let store=loadPO();
+  if(mode==="Efetivados"){
+    store=store.filter(p=>["Comprado","Disponível para retirada","Retirado"].includes(p.status));
+  }
+  // por material
+  const mat={};
+  store.forEach(p=>{
+    const key=(p.desc||p.titulo||"(sem descrição)").trim().toLowerCase();
+    if(!mat[key]) mat[key]={nome:(p.desc||p.titulo||"(sem descrição)"), qtd:0, count:0, un:p.un||""};
+    const q=parseFloat((p.qtd||"").toString().replace(",","."));
+    if(!isNaN(q)) mat[key].qtd+=q;
+    mat[key].count++;
+  });
+  const mArr=Object.values(mat).sort((a,b)=>b.count-a.count);
+  const mBox=document.getElementById("histMaterial");
+  if(mArr.length===0){ mBox.innerHTML=`<p class="empty">Sem registros.</p>`; }
+  else{
+    mBox.innerHTML=`<table class="hist-table"><tr><th>Material</th><th>Qtd total</th><th>Pedidos</th></tr>`+
+      mArr.map(m=>`<tr><td>${esc(m.nome)}</td><td>${m.qtd? (Math.round(m.qtd*100)/100):"—"} ${esc(m.un)}</td><td>${m.count}</td></tr>`).join("")+`</table>`;
+  }
+  // por local
+  const loc={};
+  store.forEach(p=>{
+    const key=(p.local||"(sem local)").trim().toLowerCase();
+    if(!loc[key]) loc[key]={nome:(p.local||"(sem local)"), count:0, disp:0, ret:0};
+    loc[key].count++;
+    if(p.status==="Disponível para retirada") loc[key].disp++;
+    if(p.status==="Retirado") loc[key].ret++;
+  });
+  const lArr=Object.values(loc).sort((a,b)=>b.count-a.count);
+  const lBox=document.getElementById("histLocal");
+  if(lArr.length===0){ lBox.innerHTML=`<p class="empty">Sem registros.</p>`; }
+  else{
+    lBox.innerHTML=`<table class="hist-table"><tr><th>Local</th><th>Pedidos</th><th>Disp.</th><th>Retirados</th></tr>`+
+      lArr.map(l=>`<tr><td>${esc(l.nome)}</td><td>${l.count}</td><td>${l.disp}</td><td>${l.ret}</td></tr>`).join("")+`</table>`;
+  }
+}
+
+function switchSub(name){
+  document.querySelectorAll(".subtab").forEach(t=>t.classList.toggle("active",t.dataset.sub===name));
+  document.querySelectorAll(".subview").forEach(v=>v.classList.remove("active"));
+  document.getElementById("sub-"+name).classList.add("active");
+  if(name==="historico") renderHistorico();
+  if(name==="pedidos") renderCompras();
+}
+
+function exportComprasCSV(){
+  const store=loadPO();
+  if(store.length===0){ toast("Nenhum pedido para exportar."); return; }
+  const head=["Inspecao_ID","Data","Local","Setor","OM","Item","Material","Codigo","Qtd","Un","Zelador","Contato","Status","Local_Retirada","Notificado_em"];
+  const rows=store.map(p=>[
+    p.inspId, new Date(p.createdAt).toLocaleDateString('pt-BR'), p.local, p.setor, p.om,
+    p.item, p.desc||p.titulo, p.cod, p.qtd, p.un, p.zelador, p.contato, p.status,
+    p.localRetirada, p.notifiedAt? new Date(p.notifiedAt).toLocaleString('pt-BR'):""
+  ]);
+  const csv=[head].concat(rows).map(r=>r.map(c=>{
+    let v=(c==null?"":String(c));
+    if(/[";\n]/.test(v)) v='"'+v.replace(/"/g,'""')+'"';
+    return v;
+  }).join(";")).join("\n");
+  const blob=new Blob(["\ufeff"+csv],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url; a.download="pedidos_compras_zeladoria.csv";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),1500);
+  toast("CSV exportado ⬇️");
+}
+function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
+/* >>> FIM MÓDULO COMPRAS <<< */
+
+
+/* ============================================================
    NAVEGAÇÃO
    ============================================================ */
 document.querySelectorAll(".tab").forEach(tab=>{
@@ -912,6 +1340,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
     document.getElementById("view-"+v).classList.add("active");
     if(v==="resumo") renderResumo();
     if(v==="relatorio") renderReport();
+    if(v==="compras"){ syncCurrentInspectionToPO(false); renderCompras(); }
     window.scrollTo(0,0);
   };
 });
@@ -922,16 +1351,9 @@ document.getElementById("btnReport").onclick=()=>{
 document.getElementById("btnExport").onclick=exportReport;
 
 // autosave nos campos de dados
-["f_local","f_setor","f_inspetor","f_matricula","f_data","f_om","f_email","f_obs"].forEach(id=>{
-  const el=document.getElementById(id);
-  el.addEventListener("change",save);
-  el.addEventListener("input",debounce(save,500));
+["f_local","f_setor","f_inspetor","f_matricula","f_data","f_om","f_email","f_obs","f_zelador","f_contato"].forEach(id=>{
+  document.getElementById(id).addEventListener("change",save);
 });
-function debounce(fn,wait){
-  let t;
-  return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args),wait); };
-}
-window.addEventListener("beforeunload",save);
 
 /* ============================================================
    INIT
