@@ -214,6 +214,12 @@
   .hist-table td{padding:7px;border-bottom:1px solid var(--line);}
   .hist-table tr:nth-child(even) td{background:#f7fafa;}
   .info-note{background:#fff8e1;border:1px solid #f0e2a8;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5c00;margin-bottom:12px;line-height:1.5;}
+  /* ---- CLOUD / GOOGLE SHEETS ---- */
+  .cloud-card{border:1.5px solid #6b4fbb33;background:linear-gradient(180deg,#faf8ff,#fff);}
+  .cloud-card h2{color:#5b3fb0;}
+  .cloud-dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#9aa0a6;margin-right:6px;vertical-align:middle;}
+  .cloud-dot.on{background:var(--ok);} .cloud-dot.off{background:var(--nc);}
+  .mb-pull{background:#6b4fbb;color:#fff;}
 
 </style>
 </head>
@@ -333,14 +339,33 @@
 
     <!-- ---- PEDIDOS ---- -->
     <div class="subview active" id="sub-pedidos">
+
+      <!-- CLOUD CONFIG -->
+      <div class="card cloud-card">
+        <h2>☁️ Fonte de Dados — Google Sheets</h2>
+        <p class="hint" style="margin-top:0;">Conecte a um Web App do Google Apps Script para compartilhar os pedidos entre o comprador e os zeladores, em qualquer aparelho.</p>
+        <label>URL do Web App (Apps Script)</label>
+        <input type="url" id="cloud_url" placeholder="https://script.google.com/macros/s/xxxxx/exec">
+        <label>Token de acesso</label>
+        <input type="text" id="cloud_token" placeholder="Mesmo TOKEN definido no Apps Script">
+        <label class="mat-toggle" style="color:#5b3fb0"><input type="checkbox" id="cloud_auto"> ☁️ Sincronizar automaticamente ao abrir/enviar</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
+          <button class="mini-btn mb-copy" onclick="saveCloudCfg()">💾 Salvar</button>
+          <button class="mini-btn mb-sms" onclick="testCloud()">🔌 Testar</button>
+          <button class="mini-btn mb-wa" onclick="pushToCloud(false)">⬆️ Enviar</button>
+          <button class="mini-btn mb-pull" onclick="pullFromCloud(false)">⬇️ Baixar</button>
+        </div>
+        <div id="cloudStatus" class="hint" style="margin-top:8px;font-weight:600;"><span class="cloud-dot off"></span>Desconectado</div>
+      </div>
+
       <div class="info-note">
-        💡 <b>Painel do Comprador.</b> Aqui aparecem todos os materiais solicitados nas inspeções (deste aparelho). Atualize o <b>status</b>, informe o <b>local de retirada</b> e, quando o material estiver disponível, toque em <b>WhatsApp</b> ou <b>SMS</b> para avisar o zelador solicitante.
+        💡 <b>Painel do Comprador.</b> Aqui aparecem todos os materiais solicitados nas inspeções. Atualize o <b>status</b>, informe o <b>local de retirada</b> e, quando o material estiver disponível, toque em <b>WhatsApp</b> ou <b>SMS</b> para avisar o zelador solicitante. Com a nuvem ativa, os pedidos são compartilhados entre todos os aparelhos.
       </div>
 
       <div class="kpi-grid">
         <div class="kpi k-tot"><div class="n" id="c_tot">0</div><div class="l">Pedidos</div></div>
         <div class="kpi k-nc"><div class="n" id="c_pd">0</div><div class="l">Pendentes</div></div>
-        <div class="kpi" style="--x:0"><div class="n" id="c_cp" style="color:#1a73e8">0</div><div class="l">Comprados</div></div>
+        <div class="kpi"><div class="n" id="c_cp" style="color:#1a73e8">0</div><div class="l">Comprados</div></div>
         <div class="kpi k-ok"><div class="n" id="c_dp">0</div><div class="l">Disponíveis</div></div>
       </div>
 
@@ -1013,7 +1038,7 @@ function toast(msg){
 }
 
 /* ============================================================
-   >>> MÓDULO COMPRAS / COMPRADOR / NOTIFICAÇÕES <<<
+   >>> MÓDULO COMPRAS / COMPRADOR / NOTIFICAÇÕES / NUVEM <<<
    ============================================================ */
 const PO_KEY = "insp_zeladoria_compras_v1";
 const PO_STATUS = ["Pendente","Em cotação","Comprado","Disponível para retirada","Retirado"];
@@ -1046,7 +1071,7 @@ function syncCurrentInspectionToPO(showMsg){
     if(!po){
       po = {
         key, id:"PO"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
-        inspId, createdAt:Date.now(),
+        inspId, createdAt:Date.now(), updatedAt:Date.now(),
         item:m.n, titulo:m.titulo||"", desc:m.desc||"", cod:m.cod||"",
         qtd:m.qtd||"", un:m.un||"un",
         local:d.local||"", setor:d.setor||"", om:d.om||"",
@@ -1056,17 +1081,18 @@ function syncCurrentInspectionToPO(showMsg){
       };
       store.push(po); novos++;
     } else {
-      // preserva status/local de retirada/notificação do comprador
       po.desc=m.desc||po.desc; po.cod=m.cod||po.cod; po.qtd=m.qtd||po.qtd;
       po.un=m.un||po.un; po.titulo=m.titulo||po.titulo;
       po.local=d.local||po.local; po.setor=d.setor||po.setor; po.om=d.om||po.om;
       po.zelador=(d.zelador||d.inspetor||po.zelador); po.contato=(d.contato||po.contato);
+      po.updatedAt=Date.now();
       atualizados++;
     }
   });
   savePO(store);
   if(showMsg) toast("Pedidos enviados ✔  ("+novos+" novo(s), "+atualizados+" atualizado(s))");
   renderCompras();
+  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
 }
 
 function poByKey(k){ return loadPO().find(p=>p.key===k); }
@@ -1078,13 +1104,15 @@ function setPOStatus(encKey,val){
   po.status=val;
   po.historico=po.historico||[];
   po.historico.push({status:val, ts:Date.now()});
+  po.updatedAt=Date.now();
   savePO(store); renderCompras();
+  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
 }
 function setPOPickup(encKey,val){
   const k=decodeURIComponent(encKey);
   let store=loadPO(); const po=store.find(p=>p.key===k);
   if(!po) return;
-  po.localRetirada=val; savePO(store); // sem re-render para manter o foco
+  po.localRetirada=val; po.updatedAt=Date.now(); savePO(store);
 }
 function markReadyAndNotify(encKey,ch){
   const k=decodeURIComponent(encKey);
@@ -1093,7 +1121,9 @@ function markReadyAndNotify(encKey,ch){
   if(po.status!=="Disponível para retirada"){
     po.status="Disponível para retirada";
     po.historico=po.historico||[]; po.historico.push({status:po.status, ts:Date.now()});
+    po.updatedAt=Date.now();
     savePO(store);
+    if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
   }
   notifyZelador(encKey,ch);
 }
@@ -1125,7 +1155,6 @@ function notifyZelador(encKey,ch){
   const phone=normPhone(po.contato);
   const msg=buildNotifMsg(po);
   if(!phone){
-    // sem telefone: copia a mensagem para colar manualmente
     try{ navigator.clipboard.writeText(msg); toast("Sem contato do zelador. Mensagem copiada 📋"); }
     catch(e){ toast("Preencha o contato do zelador na aba Dados."); }
     return;
@@ -1133,11 +1162,12 @@ function notifyZelador(encKey,ch){
   let link;
   if(ch==="wa") link="https://wa.me/"+phone+"?text="+encodeURIComponent(msg);
   else link="sms:+"+phone+"?body="+encodeURIComponent(msg);
-  po.notifiedAt=Date.now();
+  po.notifiedAt=Date.now(); po.updatedAt=Date.now();
   po.historico=po.historico||[]; po.historico.push({status:"Notificado ("+ch+")", ts:Date.now()});
   savePO(store);
   window.open(link,"_blank");
   renderCompras();
+  if(cloudCfg().auto && cloudCfg().url){ pushToCloud(true); }
 }
 function copyNotif(encKey){
   const k=decodeURIComponent(encKey);
@@ -1212,7 +1242,6 @@ function renderCompras(){
   const fLocal=((document.getElementById("cf_local")||{}).value||"").toLowerCase();
   const fText=((document.getElementById("cf_text")||{}).value||"").toLowerCase();
 
-  // KPIs (sobre todos, não filtrados)
   const kc={tot:store.length,pd:0,cp:0,dp:0};
   store.forEach(p=>{
     if(p.status==="Pendente"||p.status==="Em cotação") kc.pd++;
@@ -1237,7 +1266,6 @@ function renderCompras(){
     box.innerHTML=`<p class="empty">Nenhum pedido encontrado.<br>Preencha as solicitações de material na aba <b>Inspeção</b> e toque em <b>Sincronizar</b>.</p>`;
     return;
   }
-  // agrupar por inspeção
   const groups={};
   list.forEach(p=>{ (groups[p.inspId]=groups[p.inspId]||[]).push(p); });
   let html="";
@@ -1260,7 +1288,6 @@ function renderHistorico(){
   if(mode==="Efetivados"){
     store=store.filter(p=>["Comprado","Disponível para retirada","Retirado"].includes(p.status));
   }
-  // por material
   const mat={};
   store.forEach(p=>{
     const key=(p.desc||p.titulo||"(sem descrição)").trim().toLowerCase();
@@ -1276,7 +1303,6 @@ function renderHistorico(){
     mBox.innerHTML=`<table class="hist-table"><tr><th>Material</th><th>Qtd total</th><th>Pedidos</th></tr>`+
       mArr.map(m=>`<tr><td>${esc(m.nome)}</td><td>${m.qtd? (Math.round(m.qtd*100)/100):"—"} ${esc(m.un)}</td><td>${m.count}</td></tr>`).join("")+`</table>`;
   }
-  // por local
   const loc={};
   store.forEach(p=>{
     const key=(p.local||"(sem local)").trim().toLowerCase();
@@ -1325,7 +1351,99 @@ function exportComprasCSV(){
   toast("CSV exportado ⬇️");
 }
 function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
-/* >>> FIM MÓDULO COMPRAS <<< */
+
+/* ============================================================
+   >>> NUVEM — GOOGLE SHEETS (Apps Script Web App) <<<
+   ============================================================ */
+const CLOUD_KEY="insp_zeladoria_cloud_cfg_v1";
+function cloudCfg(){ try{ return JSON.parse(localStorage.getItem(CLOUD_KEY))||{}; }catch(e){ return {}; } }
+function saveCloudCfg(){
+  const cfg={
+    url:(val("cloud_url")||"").trim(),
+    token:(val("cloud_token")||"").trim(),
+    auto:(document.getElementById("cloud_auto")||{}).checked || false
+  };
+  localStorage.setItem(CLOUD_KEY, JSON.stringify(cfg));
+  cloudStatus(cfg.url?"Configuração salva ✔":"Salvo (sem URL — modo offline)", cfg.url?"ok":"");
+}
+function loadCloudCfgToForm(){
+  const cfg=cloudCfg();
+  setVal("cloud_url",cfg.url); setVal("cloud_token",cfg.token);
+  const a=document.getElementById("cloud_auto"); if(a) a.checked=!!cfg.auto;
+  cloudStatus(cfg.url?("Conectado a: "+shortUrl(cfg.url)):"Desconectado", cfg.url?"ok":"off");
+}
+function shortUrl(u){ try{ return u.replace(/^https?:\/\//,"").slice(0,42)+"…"; }catch(e){ return u; } }
+function cloudStatus(msg,cls){
+  const el=document.getElementById("cloudStatus"); if(!el) return;
+  const dot = cls==="ok"?'<span class="cloud-dot on"></span>':(cls==="err"?'<span class="cloud-dot off"></span>':'<span class="cloud-dot"></span>');
+  el.innerHTML=dot+msg;
+  el.style.color = cls==="err"?"var(--nc)":(cls==="ok"?"var(--vale-teal-d)":"var(--muted)");
+}
+async function cloudRequest(action, payload){
+  const cfg=cloudCfg();
+  if(!cfg.url) throw new Error("URL do Web App não configurada");
+  const body=Object.assign({action, token:cfg.token}, payload||{});
+  // text/plain evita preflight CORS com Apps Script
+  const res=await fetch(cfg.url,{ method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body:JSON.stringify(body) });
+  const txt=await res.text();
+  let data; try{ data=JSON.parse(txt); }catch(e){ throw new Error("Resposta inválida do servidor (verifique a URL/implantação)"); }
+  if(!data.ok) throw new Error(data.error||"Falha no servidor");
+  return data;
+}
+async function testCloud(){
+  cloudStatus("Testando conexão...");
+  try{
+    const d=await cloudRequest("list",{});
+    cloudStatus("Conexão OK ✔ ("+((d.rows||[]).length)+" registro(s) na planilha)","ok");
+  }catch(e){ cloudStatus("Erro: "+e.message,"err"); }
+}
+async function pushToCloud(silent){
+  const cfg=cloudCfg();
+  if(!cfg.url){ if(!silent) cloudStatus("Configure a URL primeiro","err"); return; }
+  const rows=loadPO();
+  if(rows.length===0){ if(!silent) cloudStatus("Nada para enviar","err"); return; }
+  try{
+    if(!silent) cloudStatus("Enviando "+rows.length+" pedido(s)...");
+    const d=await cloudRequest("upsert",{rows});
+    if(!silent) cloudStatus("Enviado ✔ ("+(d.upserted!=null?d.upserted:rows.length)+" registro(s))","ok");
+  }catch(e){ if(!silent) cloudStatus("Erro ao enviar: "+e.message,"err"); }
+}
+function normalizeCloud(cp){
+  let hist=cp.historico;
+  if(typeof hist==="string"){ try{ hist=JSON.parse(hist); }catch(e){ hist=[]; } }
+  return {
+    key:cp.key, id:cp.id, inspId:cp.inspId, createdAt:+cp.createdAt||Date.now(),
+    item:cp.item||"", titulo:cp.titulo||"", desc:cp.desc||"", cod:cp.cod||"",
+    qtd:cp.qtd||"", un:cp.un||"un", local:cp.local||"", setor:cp.setor||"", om:cp.om||"",
+    zelador:cp.zelador||"", contato:cp.contato||"", status:cp.status||"Pendente",
+    localRetirada:cp.localRetirada||"", notifiedAt:cp.notifiedAt?(+cp.notifiedAt):null,
+    updatedAt:+cp.updatedAt||Date.now(), historico:hist||[]
+  };
+}
+async function pullFromCloud(silent){
+  const cfg=cloudCfg();
+  if(!cfg.url){ if(!silent) cloudStatus("Configure a URL primeiro","err"); return; }
+  try{
+    if(!silent) cloudStatus("Baixando da nuvem...");
+    const d=await cloudRequest("list",{});
+    const cloud=d.rows||[];
+    const local=loadPO();
+    const map={}; local.forEach(p=>map[p.key]=p);
+    let add=0,upd=0;
+    cloud.forEach(raw=>{
+      const cp=normalizeCloud(raw);
+      const lp=map[cp.key];
+      const cu=+cp.updatedAt||0, lu=lp?(+lp.updatedAt||0):-1;
+      if(!lp){ map[cp.key]=cp; add++; }
+      else if(cu>=lu){ map[cp.key]=Object.assign({}, lp, cp); upd++; }
+    });
+    const merged=Object.keys(map).map(k=>map[k]);
+    savePO(merged);
+    renderCompras();
+    if(!silent) cloudStatus("Sincronizado ✔ ("+add+" novo(s), "+upd+" atualizado(s))","ok");
+  }catch(e){ if(!silent) cloudStatus("Erro ao baixar: "+e.message,"err"); }
+}
+/* >>> FIM MÓDULO COMPRAS/NUVEM <<< */
 
 
 /* ============================================================
@@ -1340,7 +1458,7 @@ document.querySelectorAll(".tab").forEach(tab=>{
     document.getElementById("view-"+v).classList.add("active");
     if(v==="resumo") renderResumo();
     if(v==="relatorio") renderReport();
-    if(v==="compras"){ syncCurrentInspectionToPO(false); renderCompras(); }
+    if(v==="compras"){ syncCurrentInspectionToPO(false); if(cloudCfg().auto && cloudCfg().url){ pullFromCloud(true); } renderCompras(); }
     window.scrollTo(0,0);
   };
 });
@@ -1362,6 +1480,7 @@ load();
 renderChecklist();
 renderFrees();
 updateProgress();
+loadCloudCfgToForm();
 </script>
 </body>
 </html>
