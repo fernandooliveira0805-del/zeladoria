@@ -27,7 +27,7 @@
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
     background:var(--bg);color:var(--txt);font-size:15px;line-height:1.45;
-    padding-bottom:96px;
+    padding-bottom:28px;
   }
   /* ---------- HEADER ---------- */
   header{
@@ -61,7 +61,7 @@
   .card{background:var(--card);border-radius:14px;box-shadow:var(--shadow);padding:16px;margin-bottom:14px;}
   .card h2{margin:0 0 12px;font-size:15px;color:var(--vale-teal-d);display:flex;align-items:center;gap:8px;}
   label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin:10px 0 4px;}
-  input[type=text],input[type=date],input[type=number],input[type=email],select,textarea{
+  input[type=text],input[type=date],input[type=number],input[type=email],input[type=tel],input[type=url],select,textarea{
     width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;
     font-size:15px;font-family:inherit;background:#fbfcfc;color:var(--txt);
   }
@@ -117,11 +117,14 @@
   .mat-box.show{display:block;}
   .mat-box .grid3{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;}
   @media(max-width:520px){.mat-box .grid3{grid-template-columns:1fr;}}
-  /* ---------- BOTTOM BAR ---------- */
-  .bottom-bar{
-    position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--line);
-    display:flex;gap:8px;padding:10px 14px;z-index:60;box-shadow:0 -2px 10px rgba(0,0,0,.06);
+  /* ---------- FINALIZE BUTTON ---------- */
+  .finalize-wrap{margin:18px 0 6px;}
+  .btn-finalize{
+    width:100%;padding:16px;border:none;border-radius:14px;font-size:16px;font-weight:800;cursor:pointer;
+    background:linear-gradient(135deg,var(--vale-teal),var(--vale-teal-d));color:#fff;box-shadow:var(--shadow);
+    display:flex;align-items:center;justify-content:center;gap:10px;
   }
+  .btn-finalize:active{transform:scale(.99);}
   .btn{
     flex:1;padding:13px 8px;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;
   }
@@ -154,7 +157,7 @@
   .rep-photos img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid var(--line);}
   .empty{text-align:center;color:var(--muted);padding:30px 10px;font-size:13px;}
   .toast{
-    position:fixed;bottom:110px;left:50%;transform:translateX(-50%);background:#1f2a2e;color:#fff;
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1f2a2e;color:#fff;
     padding:11px 18px;border-radius:24px;font-size:13px;z-index:200;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow);
   }
   .toast.show{opacity:1;}
@@ -216,8 +219,6 @@
   .hist-table tr:nth-child(even) td{background:#f7fafa;}
   .info-note{background:#fff8e1;border:1px solid #f0e2a8;border-radius:10px;padding:10px 12px;font-size:12px;color:#7a5c00;margin-bottom:12px;line-height:1.5;}
   /* ---- CLOUD / GOOGLE SHEETS ---- */
-  .cloud-card{border:1.5px solid #6b4fbb33;background:linear-gradient(180deg,#faf8ff,#fff);}
-  .cloud-card h2{color:#5b3fb0;}
   .online-badge{display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;padding:9px 12px;border-radius:10px;margin-bottom:12px;}
   .online-badge.on{background:#e6f4ea;color:#1e6b31;border:1px solid #b7e0c2;}
   .online-badge.off{background:#fdecea;color:#b3261e;border:1px solid #f3b7b1;}
@@ -227,11 +228,9 @@
   .spin{width:14px;height:14px;border:2px solid #ffffff70;border-top-color:#7a5c00;border-radius:50%;display:inline-block;animation:spin 0.8s linear infinite;}
   @keyframes spin{to{transform:rotate(360deg);}}
   .sec-warn{background:#eef7f6;border:1px solid #bfe0dd;border-radius:8px;padding:8px 10px;font-size:11.5px;color:#0b5c57;margin-top:10px;line-height:1.5;}
-
 </style>
 </head>
 <body>
-
 <header>
   <div class="hd-top">
     <div class="logo">
@@ -251,19 +250,16 @@
   <div class="progress-wrap"><div class="progress-bar" id="progBar"></div></div>
   <div class="progress-lbl"><span id="progTxt">0 de 0 itens</span><span id="progPct">0%</span></div>
 </header>
-
 <div class="tabs">
-  <div class="tab active" data-view="dados">📋 Dados</div>
-  <div class="tab" data-view="inspecao">✅ Inspeção</div>
+  <div class="tab active" data-view="inspecao">✅ Inspeção</div>
   <div class="tab" data-view="resumo">📊 Resumo</div>
   <div class="tab" data-view="relatorio">📄 Relatório</div>
   <div class="tab" data-view="compras">🧾 Compras</div>
 </div>
-
 <div class="container">
-
-  <!-- ========== DADOS ========== -->
-  <section class="view active" id="view-dados">
+  <!-- ========== INSPEÇÃO (DADOS + CHECKLIST UNIFICADOS) ========== -->
+  <section class="view active" id="view-inspecao">
+    <!-- Identificação (antiga aba Dados) -->
     <div class="card">
       <h2>🏢 Identificação da Inspeção</h2>
       <div class="grid2">
@@ -286,14 +282,10 @@
       <input type="email" id="f_email" placeholder="fiscal@vale.com; suprimentos@vale.com">
       <label>Observações gerais</label>
       <textarea id="f_obs" placeholder="Condições encontradas, contexto, pendências..."></textarea>
-      <p class="hint">💾 Os dados são salvos automaticamente no aparelho. Funciona sem internet após o primeiro carregamento.</p>
+      <p class="hint">💾 Tudo é salvo automaticamente no aparelho. Você pode preencher <b>offline</b>; ao tocar em <b>Finalizar Inspeção</b> os pedidos são sincronizados na nuvem (Google Sheets).</p>
     </div>
-  </section>
-
-  <!-- ========== INSPEÇÃO ========== -->
-  <section class="view" id="view-inspecao">
+    <!-- Checklist -->
     <div id="checklist"></div>
-
     <!-- Itens adicionais / observações livres do zelador -->
     <div class="card" id="freeCard" style="border:1.5px dashed var(--vale-teal);">
       <h2>➕ Itens Adicionais / Observação Livre</h2>
@@ -301,8 +293,12 @@
       <div id="freeList"></div>
       <button class="btn btn-ghost" style="margin-top:10px;width:100%;" onclick="addFree()">➕ Adicionar observação livre</button>
     </div>
+    <!-- Finalizar Inspeção: alimenta Resumo, Relatório e Compras -->
+    <div class="finalize-wrap">
+      <button class="btn-finalize" onclick="finalizarInspecao()">✅ Finalizar Inspeção</button>
+      <p class="hint" style="text-align:center;">Ao finalizar, o <b>Resumo</b> e o <b>Relatório</b> são gerados e as solicitações de material são enviadas para a aba <b>Compras</b>.</p>
+    </div>
   </section>
-
   <!-- ========== RESUMO ========== -->
   <section class="view" id="view-resumo">
     <div class="kpi-grid">
@@ -329,51 +325,28 @@
       <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="sendInspectionToCloud(true)">📤 Enviar pedidos ao Comprador (online)</button>
     </div>
   </section>
-
   <!-- ========== RELATÓRIO ========== -->
   <section class="view" id="view-relatorio">
     <div class="card" id="reportArea">
-      <p class="empty">O relatório será montado com base na inspeção preenchida.<br>Toque em "Gerar" para visualizar.</p>
+      <p class="empty">O relatório será montado com base na inspeção preenchida.<br>Toque em "Finalizar Inspeção" para gerar.</p>
     </div>
   </section>
-
   <!-- ========== COMPRAS (COMPRADOR) — 100% ONLINE ========== -->
   <section class="view" id="view-compras">
     <div class="subtabs">
       <div class="subtab active" data-sub="pedidos" onclick="switchSub('pedidos')">📦 Pedidos</div>
       <div class="subtab" data-sub="historico" onclick="switchSub('historico')">📚 Histórico</div>
     </div>
-
     <!-- ---- PEDIDOS ---- -->
     <div class="subview active" id="sub-pedidos">
-
       <!-- STATUS ONLINE -->
-      <div class="online-badge off" id="onlineBadge"><span class="cloud-dot off"></span><span id="onlineMsg">Desconectado — configure a URL abaixo</span></div>
-
-      <!-- CLOUD CONFIG -->
-      <div class="card cloud-card">
-        <h2>☁️ Fonte de Dados — Google Sheets (Online)</h2>
-        <p class="hint" style="margin-top:0;">Nesta aba os pedidos ficam <b>100% na planilha</b> — todos veem os mesmos dados, sem cópia local por pessoa.</p>
-        <label>URL do Web App (Apps Script)</label>
-        <input type="url" id="cloud_url" placeholder="https://script.google.com/macros/s/xxxxx/exec">
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;">
-          <button class="mini-btn mb-copy" onclick="saveCloudCfg()">💾 Salvar</button>
-          <button class="mini-btn mb-sms" onclick="testCloud()">🔌 Testar</button>
-          <button class="mini-btn mb-pull" onclick="refreshCompras()">🔄 Atualizar</button>
-          <button class="mini-btn mb-wa" onclick="copyShareLink()">🔗 Gerar link p/ equipe</button>
-        </div>
-        <div class="sec-warn">
-          🔗 <b>Compartilhamento sem configuração:</b> toque em <b>Gerar link p/ equipe</b> para criar um link já com a URL embutida. Quem abrir esse link entra <b>direto online</b>, sem precisar preencher nada.
-        </div>
-      </div>
-
+      <div class="online-badge off" id="onlineBadge"><span class="cloud-dot off"></span><span id="onlineMsg">Conectando à planilha...</span></div>
       <div class="kpi-grid">
         <div class="kpi k-tot"><div class="n" id="c_tot">0</div><div class="l">Pedidos</div></div>
         <div class="kpi k-nc"><div class="n" id="c_pd">0</div><div class="l">Pendentes</div></div>
         <div class="kpi"><div class="n" id="c_cp" style="color:#1a73e8">0</div><div class="l">Comprados</div></div>
         <div class="kpi k-ok"><div class="n" id="c_dp">0</div><div class="l">Disponíveis</div></div>
       </div>
-
       <div class="filters">
         <select id="cf_status" onchange="renderComprasFromCache()">
           <option value="Todos">Todos os status</option>
@@ -386,17 +359,13 @@
         <input type="text" id="cf_local" placeholder="Filtrar por local..." oninput="renderComprasFromCache()">
         <input type="text" id="cf_text" placeholder="Buscar material / zelador..." oninput="renderComprasFromCache()">
       </div>
-
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
         <button class="btn btn-ghost" style="flex:1;" onclick="refreshCompras()">🔄 Atualizar da nuvem</button>
         <button class="btn btn-yellow" style="flex:1;" onclick="exportComprasCSV()">⬇️ Exportar CSV</button>
       </div>
-
-      <div id="comprasList"><p class="empty">Configure a URL e toque em <b>Atualizar</b> para carregar os pedidos.</p></div>
-
+      <div id="comprasList"><p class="empty">Carregando pedidos da planilha...</p></div>
       <button class="btn btn-ghost" style="width:100%;margin-top:6px;" onclick="clearRetirados()">🧹 Limpar pedidos já retirados</button>
     </div>
-
     <!-- ---- HISTÓRICO ---- -->
     <div class="subview" id="sub-historico">
       <div class="info-note">📚 Histórico consolidado (direto da planilha). Agrupado por <b>material</b> e por <b>local</b>.</div>
@@ -417,19 +386,16 @@
       </div>
     </div>
   </section>
-
-
 </div>
-
-<div class="bottom-bar">
-  <button class="btn btn-ghost" id="btnSave">💾 Salvar</button>
-  <button class="btn btn-yellow" id="btnReport">📄 Gerar</button>
-  <button class="btn btn-primary" id="btnExport">⬇️ Exportar</button>
-</div>
-
 <div class="toast" id="toast"></div>
-
 <script>
+/* ============================================================
+   >>> CONFIGURAÇÃO DA NUVEM (Google Sheets / Apps Script) <<<
+   Cole aqui a URL do Web App (termina em /exec). Assim a ferramenta
+   fica 100% online, sem precisar de campo de configuração na tela.
+   Também é possível sobrescrever pela URL do link (#u=...).
+   ============================================================ */
+const APPS_SCRIPT_URL = "";
 /* ============================================================
    ESTRUTURA DA CHECKLIST — INSP VESTIÁRIOS
    ============================================================ */
@@ -478,18 +444,15 @@ const CHECKLIST = [
     ]
   }
 ];
-
 /* ============================================================
    ESTADO
    ============================================================ */
 const KEY = "insp_zeladoria_vale_v1";
 let STATE = { dados:{}, itens:{}, frees:[] };
-
 function itemState(n){
   if(!STATE.itens[n]) STATE.itens[n] = { status:null, obs:"", fotos:[], mat:false, matDesc:"", matQtd:"", matUn:"un" };
   return STATE.itens[n];
 }
-
 /* ============================================================
    ITENS ADICIONAIS / OBSERVAÇÃO LIVRE
    ============================================================ */
@@ -573,7 +536,6 @@ function addFreePhoto(id,input){
 }
 function delFreePhoto(id,i){ freeById(id).fotos.splice(i,1); renderFreePhotos(id); save(); }
 function viewFreePhoto(id,i){ const src=freeById(id).fotos[i]; const w=window.open("","_blank"); if(!w){ toast("Permita pop-ups para visualizar a foto"); return; } w.document.write(`<img src="${src}" style="max-width:100%;height:auto" alt="Registro fotográfico">`); w.document.close(); }
-
 /* ============================================================
    RENDER CHECKLIST
    ============================================================ */
@@ -627,7 +589,6 @@ function renderChecklist(){
   });
   updateBadges();
 }
-
 /* ---------- STATUS ---------- */
 function setStatus(n,s){
   const st = itemState(n);
@@ -643,7 +604,7 @@ function setStatus(n,s){
   const extra = document.getElementById("extra-"+n);
   if(st.status==='nc'){
     extra.classList.add("show");
-    // >>> NOVO: ao marcar Não Conforme, abre a câmera automaticamente <<<
+    // >>> ao marcar Não Conforme, abre a câmera automaticamente <<<
     if(!wasNc && (!st.fotos || st.fotos.length===0)){
       openCamera(n);
     }
@@ -654,7 +615,6 @@ function setStatus(n,s){
 function setObs(n,v){ itemState(n).obs=v; save(); }
 function toggleMat(n,v){ itemState(n).mat=v; document.getElementById("mat-"+n).classList.toggle("show",v); save(); }
 function setMat(n,f,v){ itemState(n)[f]=v; save(); }
-
 /* ---------- FOTOS ---------- */
 function renderPhotos(n){
   const st = itemState(n);
@@ -706,13 +666,11 @@ function viewPhoto(n,i){
   w.document.write(`<img src="${src}" style="max-width:100%;height:auto" alt="Registro fotográfico">`);
   w.document.close();
 }
-
 /* ---------- COLLAPSE SECTION ---------- */
 function toggleSec(s){
   const b=document.getElementById("body-"+s);
   b.style.display = (b.style.display==="none")?"block":"none";
 }
-
 /* ============================================================
    BADGES / PROGRESSO
    ============================================================ */
@@ -740,7 +698,6 @@ function updateProgress(){
   document.getElementById("progTxt").textContent=`${c.done} de ${c.tot} itens`;
   document.getElementById("progPct").textContent=pct+"%";
 }
-
 /* ============================================================
    RESUMO
    ============================================================ */
@@ -781,7 +738,6 @@ function collectMats(){
   });
   return out;
 }
-
 /* ============================================================
    RELATÓRIO
    ============================================================ */
@@ -809,7 +765,6 @@ function renderReport(){
     <p style="font-size:14px;"><b>Índice de conformidade:</b> <span style="color:${pct>=90?'var(--ok)':pct>=70?'var(--vale-yellow-d)':'var(--nc)'};font-weight:800;">${pct}%</span> (sobre itens avaliados)</p>
     ${d.obs?`<p style="font-size:13px;"><b>Observações gerais:</b> ${esc(d.obs)}</p>`:""}
   `;
-
   html += `<h2 style="margin-top:18px;">🚩 Não Conformidades (${ncItems.length})</h2>`;
   if(ncItems.length===0){ html+=`<p class="empty">Nenhuma não conformidade registrada. ✅</p>`; }
   else{
@@ -823,7 +778,6 @@ function renderReport(){
       </div>`;
     });
   }
-
   // observações livres
   const frees=(STATE.frees||[]).filter(f=>(f.desc&&f.desc.trim())||f.mat||(f.fotos&&f.fotos.length));
   html += `<h2 style="margin-top:18px;">➕ Itens Adicionais / Observações Livres (${frees.length})</h2>`;
@@ -838,7 +792,6 @@ function renderReport(){
       </div>`;
     });
   }
-
   html += `<h2 style="margin-top:18px;">🛒 Solicitação de Compra de Materiais (${mats.length})</h2>`;
   if(mats.length===0){ html+=`<p class="empty">Nenhuma solicitação de material.</p>`; }
   else{
@@ -850,7 +803,6 @@ function renderReport(){
         <td style="padding:7px;text-align:center;">${m.un}</td></tr>`).join("")}
     </table>`;
   }
-
   html += `
     <div style="margin-top:30px;display:flex;justify-content:space-around;font-size:12px;color:var(--muted);text-align:center;">
       <div style="border-top:1px solid #999;padding-top:6px;width:45%;">Inspetor(a)<br><b>${esc(d.inspetor)||""}</b></div>
@@ -858,8 +810,7 @@ function renderReport(){
     </div>
     <p style="text-align:center;font-size:10px;color:var(--muted);margin-top:14px;">Gerado em ${new Date().toLocaleString('pt-BR')} • Ferramenta de Inspeção de Zeladoria — Vale S/A</p>
   `;
-
-  // >>> NOVO: painel de envio no final do relatório <<<
+  // painel de envio no final do relatório
   html += `
     <div class="share-panel">
       <h3>📤 Salvar e Enviar</h3>
@@ -872,11 +823,8 @@ function renderReport(){
       </div>
     </div>
   `;
-
   area.innerHTML = html;
-  toast("Relatório gerado ✔");
 }
-
 /* ============================================================
    ENVIO POR E-MAIL (corpo resumido via mailto)
    ============================================================ */
@@ -938,7 +886,6 @@ function sendEmail(){
   if(link.length>1900){ toast("Resumo enviado; gere o PDF para anexar as fotos 📄"); }
   window.location.href = link;
 }
-
 /* ============================================================
    COMPARTILHAR (Web Share API — WhatsApp, Teams, etc.)
    ============================================================ */
@@ -958,7 +905,6 @@ async function shareReport(){
     }catch(e){ toast("Use 'Gerar PDF' para compartilhar 📄"); }
   }
 }
-
 /* ============================================================
    EXPORTAR (impressão / PDF)
    ============================================================ */
@@ -991,7 +937,6 @@ function exportReport(){
 }
 // gera o HTML do relatório sem exibir toast duplicado
 function renderReportSilent(){ renderReport(); }
-
 /* ============================================================
    PERSISTÊNCIA
    ============================================================ */
@@ -1027,12 +972,11 @@ function load(){
   setVal("f_zelador",d.zelador); setVal("f_contato",d.contato);
   setVal("f_data", d.data || new Date().toISOString().slice(0,10));
 }
-
 /* ============================================================
    UTIL
    ============================================================ */
-function val(id){return document.getElementById(id).value;}
-function setVal(id,v){if(v!=null)document.getElementById(id).value=v;}
+function val(id){const el=document.getElementById(id); return el?el.value:"";}
+function setVal(id,v){const el=document.getElementById(id); if(el&&v!=null)el.value=v;}
 function esc(s){return (s||"").replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function escAttr(s){return (s||"").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 function escTa(s){return (s||"").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
@@ -1042,23 +986,15 @@ function toast(msg){
   const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
   clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("show"),1800);
 }
-
 /* ============================================================
    >>> MÓDULO COMPRAS — 100% ONLINE (Google Sheets/Apps Script) <<<
-   Sem token: o Apps Script é usado apenas como base de dados.
+   URL configurada no código (APPS_SCRIPT_URL) ou via link (#u=...).
    Nesta aba NÃO há banco local — os pedidos vivem na planilha.
    ============================================================ */
-
-/* (Opcional) Preencha para publicar já conectado. Deixe vazio para
-   distribuir o acesso apenas pelo "link p/ equipe". */
-const CLOUD_DEFAULT = { url:"" };
-
+const CLOUD_DEFAULT = { url: APPS_SCRIPT_URL };
 const PO_STATUS = ["Pendente","Em cotação","Comprado","Disponível para retirada","Retirado"];
-const CLOUD_CFG_KEY = "insp_zeladoria_cloud_cfg_v3";
-
 let PO_CACHE = [];   // memória apenas (NÃO persiste em localStorage)
-
-/* ---------- CONFIG (só URL): hash do link > constante > localStorage ---------- */
+/* ---------- CONFIG (só URL): hash do link > constante do código ---------- */
 function cloudCfg(){
   try{
     const h=(location.hash||"").replace(/^#/,"");
@@ -1069,27 +1005,8 @@ function cloudCfg(){
     }
   }catch(e){}
   if(CLOUD_DEFAULT.url) return { url:CLOUD_DEFAULT.url, from:"const" };
-  try{ const c=JSON.parse(localStorage.getItem(CLOUD_CFG_KEY))||{}; c.from="local"; return c; }catch(e){ return {}; }
+  return {};
 }
-function saveCloudCfg(){
-  const cfg={ url:(val("cloud_url")||"").trim() };
-  localStorage.setItem(CLOUD_CFG_KEY, JSON.stringify(cfg));
-  toast("Configuração salva 💾");
-  refreshCompras();
-}
-function loadCloudCfgToForm(){
-  const cfg=cloudCfg();
-  setVal("cloud_url",cfg.url);
-}
-function copyShareLink(){
-  const url=(val("cloud_url")||"").trim();
-  if(!url){ toast("Preencha a URL do Web App primeiro."); return; }
-  const base=location.origin+location.pathname;
-  const link=base+"#u="+encodeURIComponent(url);
-  try{ navigator.clipboard.writeText(link); toast("Link da equipe copiado 🔗"); }
-  catch(e){ prompt("Copie o link da equipe:", link); }
-}
-
 /* ---------- BADGE DE STATUS ONLINE ---------- */
 function setOnline(state,msg){
   const b=document.getElementById("onlineBadge"), m=document.getElementById("onlineMsg");
@@ -1098,7 +1015,6 @@ function setOnline(state,msg){
   const dot=b.querySelector(".cloud-dot"); if(dot) dot.className="cloud-dot "+(state==="on"?"on":state==="loading"?"loading":"off");
   m.innerHTML=(state==="loading"?'<span class="spin"></span> ':'')+msg;
 }
-
 /* ---------- CHAMADA À API (Apps Script) ---------- */
 async function cloudRequest(action, payload){
   const cfg=cloudCfg();
@@ -1110,12 +1026,6 @@ async function cloudRequest(action, payload){
   if(!data.ok) throw new Error(data.error||"Falha no servidor");
   return data;
 }
-async function testCloud(){
-  setOnline("loading","Testando conexão...");
-  try{ const d=await cloudRequest("list",{}); setOnline("on","Online ✔ ("+((d.rows||[]).length)+" pedido(s) na planilha)"); }
-  catch(e){ setOnline("off","Erro: "+e.message); }
-}
-
 /* ---------- NORMALIZAÇÃO ---------- */
 function normalizeCloud(cp){
   let hist=cp.historico;
@@ -1129,7 +1039,6 @@ function normalizeCloud(cp){
     updatedAt:+cp.updatedAt||Date.now(), historico:hist||[]
   };
 }
-
 /* ---------- LISTAR (fonte única = nuvem) ---------- */
 async function cloudList(){
   const d=await cloudRequest("list",{});
@@ -1138,7 +1047,7 @@ async function cloudList(){
 }
 async function refreshCompras(){
   const cfg=cloudCfg();
-  if(!cfg.url){ setOnline("off","Desconectado — configure a URL abaixo"); document.getElementById("comprasList").innerHTML=`<p class="empty">Configure a URL e toque em <b>Atualizar</b>.</p>`; return; }
+  if(!cfg.url){ setOnline("off","Offline — URL da planilha não configurada no código"); document.getElementById("comprasList").innerHTML=`<p class="empty">A fonte de dados (Google Sheets) ainda não foi configurada.</p>`; return; }
   setOnline("loading","Carregando pedidos da planilha...");
   try{
     await cloudList();
@@ -1149,7 +1058,6 @@ async function refreshCompras(){
     document.getElementById("comprasList").innerHTML=`<p class="empty" style="color:var(--nc)">Não foi possível conectar.<br>${esc(e.message)}</p>`;
   }
 }
-
 /* ---------- ATUALIZAÇÕES (gravam DIRETO na nuvem) ---------- */
 function poByKeyCache(k){ return PO_CACHE.find(p=>p.key===k); }
 async function pushRow(po){
@@ -1207,7 +1115,6 @@ async function clearRetirados(){
   catch(e){ toast("Erro: "+e.message); }
   await refreshCompras();
 }
-
 /* ---------- NOTIFICAÇÃO ---------- */
 function normPhone(s){ let d=(s||"").replace(/\D/g,""); if(!d) return ""; if(d.length<=11) d="55"+d; return d; }
 function buildNotifMsg(po){
@@ -1223,7 +1130,6 @@ function buildNotifMsg(po){
   return "Ola "+(po.zelador||"")+", atualizacao do seu pedido (inspecao"+(po.local?(" "+po.local):"")+").\n"+
     "Item: "+po.item+" - "+(po.desc||po.titulo||"material")+"\nStatus atual: "+po.status+".";
 }
-
 /* ---------- RENDER (a partir do cache já baixado) ---------- */
 function sttClass(s){ return {"Pendente":"stt-pd","Em cotação":"stt-cot","Comprado":"stt-comp","Disponível para retirada":"stt-disp","Retirado":"stt-ret"}[s]||"stt-pd"; }
 function cardClass(s){ return {"Em cotação":"s-cot","Comprado":"s-comp","Disponível para retirada":"s-disp","Retirado":"s-ret"}[s]||""; }
@@ -1290,11 +1196,10 @@ function renderComprasFromCache(){
   });
   box.innerHTML=html;
 }
-
 /* ---------- HISTÓRICO (online) ---------- */
 async function refreshHistorico(){
   const cfg=cloudCfg();
-  if(!cfg.url){ toast("Configure a URL primeiro."); return; }
+  if(!cfg.url){ toast("Fonte de dados não configurada no código."); return; }
   try{ await cloudList(); renderHistoricoFromCache(); toast("Histórico atualizado ✔"); }
   catch(e){ toast("Erro: "+e.message); }
 }
@@ -1328,7 +1233,6 @@ function renderHistoricoFromCache(){
     `<table class="hist-table"><tr><th>Local</th><th>Pedidos</th><th>Disp.</th><th>Retirados</th></tr>`+
     lArr.map(l=>`<tr><td>${esc(l.nome)}</td><td>${l.count}</td><td>${l.disp}</td><td>${l.ret}</td></tr>`).join("")+`</table>`;
 }
-
 function switchSub(name){
   document.querySelectorAll(".subtab").forEach(t=>t.classList.toggle("active",t.dataset.sub===name));
   document.querySelectorAll(".subview").forEach(v=>v.classList.remove("active"));
@@ -1336,7 +1240,6 @@ function switchSub(name){
   if(name==="historico") refreshHistorico();
   if(name==="pedidos") refreshCompras();
 }
-
 function exportComprasCSV(){
   if(PO_CACHE.length===0){ toast("Nada para exportar. Atualize da nuvem."); return; }
   const head=["Inspecao_ID","Data","Local","Setor","OM","Item","Material","Codigo","Qtd","Un","Zelador","Contato","Status","Local_Retirada","Notificado_em"];
@@ -1348,7 +1251,6 @@ function exportComprasCSV(){
   setTimeout(()=>URL.revokeObjectURL(url),1500); toast("CSV exportado ⬇️");
 }
 function setTxt(id,v){ const el=document.getElementById(id); if(el) el.textContent=v; }
-
 /* ============================================================
    >>> PONTE INSPEÇÃO (offline) -> COMPRAS (nuvem) <<<
    ============================================================ */
@@ -1359,11 +1261,11 @@ function currentInspId(){
 }
 async function sendInspectionToCloud(showMsg){
   const cfg=cloudCfg();
-  if(!cfg.url){ toast("Configure a URL na aba Compras para enviar pedidos."); document.querySelector('.tab[data-view="compras"]').click(); return; }
+  if(!cfg.url){ toast("Fonte de dados (Google Sheets) não configurada no código."); return false; }
   collectDados(); const d=STATE.dados||{};
   const inspId=currentInspId();
   const mats=collectMats();
-  if(mats.length===0){ toast("Nenhum material solicitado nesta inspeção."); return; }
+  if(mats.length===0){ if(showMsg) toast("Nenhum material solicitado nesta inspeção."); return true; }
   setOnline("loading","Enviando pedidos à planilha...");
   try{
     await cloudList();
@@ -1391,14 +1293,42 @@ async function sendInspectionToCloud(showMsg){
     await cloudRequest("upsert",{rows});
     setOnline("on","Enviado ✔ ("+rows.length+" pedido(s) na planilha)");
     if(showMsg) toast("Pedidos enviados à nuvem ✔ ("+rows.length+")");
+    return true;
   }catch(e){
     setOnline("off","Erro ao enviar: "+e.message);
     if(showMsg) toast("Erro ao enviar: "+e.message);
+    return false;
   }
 }
 /* >>> FIM MÓDULO COMPRAS ONLINE <<< */
-
-
+/* ============================================================
+   >>> FINALIZAR INSPEÇÃO <<<
+   Consolida o preenchimento: gera Resumo + Relatório e envia os
+   pedidos de material para a aba Compras (nuvem). Funciona offline
+   para o preenchimento; a sincronização ocorre quando há internet.
+   ============================================================ */
+async function finalizarInspecao(){
+  collectDados();
+  const c=counts();
+  if(c.done===0){ toast("Preencha ao menos um item da inspeção antes de finalizar."); return; }
+  save();
+  // Alimenta as abas seguintes
+  renderResumo();
+  renderReport();
+  // Envia solicitações de material para a nuvem (se houver e se configurada)
+  const mats=collectMats();
+  const cfg=cloudCfg();
+  if(mats.length>0 && cfg.url){
+    toast("Finalizando e sincronizando pedidos...");
+    await sendInspectionToCloud(true);
+  } else if(mats.length>0 && !cfg.url){
+    toast("Inspeção finalizada ✔ (pedidos aguardando conexão)");
+  } else {
+    toast("Inspeção finalizada ✔");
+  }
+  // Leva o usuário ao Relatório consolidado
+  document.querySelector('.tab[data-view="relatorio"]').click();
+}
 /* ============================================================
    NAVEGAÇÃO
    ============================================================ */
@@ -1415,17 +1345,11 @@ document.querySelectorAll(".tab").forEach(tab=>{
     window.scrollTo(0,0);
   };
 });
-document.getElementById("btnSave").onclick=()=>{save();toast("Inspeção salva no aparelho 💾");};
-document.getElementById("btnReport").onclick=()=>{
-  document.querySelector('.tab[data-view="relatorio"]').click();
-};
-document.getElementById("btnExport").onclick=exportReport;
-
 // autosave nos campos de dados
 ["f_local","f_setor","f_inspetor","f_matricula","f_data","f_om","f_email","f_obs","f_zelador","f_contato"].forEach(id=>{
-  document.getElementById(id).addEventListener("change",save);
+  const el=document.getElementById(id);
+  if(el) el.addEventListener("change",save);
 });
-
 /* ============================================================
    INIT
    ============================================================ */
@@ -1433,7 +1357,6 @@ load();
 renderChecklist();
 renderFrees();
 updateProgress();
-loadCloudCfgToForm();
 </script>
 </body>
 </html>
